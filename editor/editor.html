@@ -1,0 +1,32 @@
+<html>
+  <head>
+    <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="editor.js"></script>
+
+    <title>TypeDungeon Top Seekrit Editor</title>
+  </head>
+
+  <body>
+
+    <div id="controls">
+      <b>Controls</b><br/>
+      <b>|</b> - new column<br/>
+      <b>_</b> - new row<br/>
+      <b>Arrow Keys</b> - move cursor<br/>
+      <b>W/A/S/D/C/F</b> - place selected wall at location (up/left/down/right/ceiling/floor)<br/>
+      <b>Space</b> - place player start location<br/>
+      <b>Enter</b> - place player finish location<br/>
+    </div>
+    <button id="hidecontrols" onclick="hideControls();">Hide Controls</button>
+    <button id="updatemap" onclick="updateMap();">Update Mapfile</button>
+    <a id="savegame" download="gen.map">Save Map</a>
+    <div id="loading"><b>Loading wall materials, wait pls</b></div>
+    <select id="wallType"></select>
+    <pre id="grid"></pre>
+
+
+    
+  </body>
+
+
+</html>

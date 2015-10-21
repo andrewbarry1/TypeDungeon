@@ -1,0 +1,68 @@
+<html>
+  <head>
+    <title>Three.Js Game</title>
+    <link rel="stylesheet" href="stylesheet.css" type="text/css" charset="utf-8" /> 
+    <script src="js/three.min.js"></script>
+    <script src="js/threex.domevents.js"></script>
+    <script src="js/threex.dynamictexture.js"></script>
+    <script src="js/class.js"></script>
+    <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script type="x-shader/x-vertex" id="vertshader">
+      varying vec3 vPos;
+      void main() {
+      vPos = normalize(modelMatrix * vec4(normal, 1.0)).xyz;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+      }
+    </script>
+    <script type="x-shader/x-fragment" id="fragshader">
+      varying vec3 vPos;
+      void main() {
+      float dProd = max(0.0, distance(vPos, normalize(cameraPosition)));
+      gl_FragColor = vec4(1.0 - dProd, 1.0 - dProd, 1.0 - dProd,1.0);
+      }
+    </script>
+
+    <style>
+      body { margin: 0; }
+      #typeText { position: absolute; left: 10%; top: 5%; width: 80%; z-index: 0; font-family: 'apple_regular'; font-size: 12pt;}
+      canvas {
+      position: absolute;
+      top:50%;
+      left:50%;
+      margin-top:-250;
+      margin-left:-250;
+      z-index:1;
+      image-rendering: pixelated;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-optimiza-contrast
+      }
+      #mainBorder {
+      position: absolute;
+      top:50%;
+      left:50%;
+      margin-top:-350;
+      margin-left:-350;
+      z-index:0;
+      image-rendering: pixelated;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-optimiza-contrast
+      }
+    </style>
+
+  </head>
+
+  <body>
+    <div id="typeText" style="color:white; background-color:black;">
+      <div id="l0"></div>
+      <div id="l1"></div>
+    </div>
+
+    <img height=700px width=700px id="mainBorder" src="assets/frame.png"/>
+    
+  </body>
+
+  <script src="js/main.js"></script>
+  <script src="js/mousetrap.js"></script>
+
+
+</html>
