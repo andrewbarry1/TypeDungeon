@@ -52,6 +52,7 @@ var typeText;
 var typeSrc;
 var typeCursor = 0;
 var typeLineCursor = 0;
+var lineOnScreen = 0;
 var currentLineText;
 var eHPbar;
 var wpmbar;
@@ -578,6 +579,7 @@ function playingOnMessage(message) {
 		typeText = [];
 		typeCursor = 0;
 		pairWords = 0;
+		lineOnScreen = 0;
 		pairTime = Date.now();
 		encounterStartTime = Date.now();
 		window.setTimeout(calculateWPM,1000);
@@ -586,10 +588,10 @@ function playingOnMessage(message) {
 		}
 		$('#l0').html(typeText[0]);
 		$('#l1').html(typeText[1]);
-		$('#'+ (typeLineCursor%2) +'c0').css('color','yellow');
-		$('#'+ (typeLineCursor%2) +'c0').css('text-decoration','underline');
-		Mousetrap.bind($('#l'+(typeLineCursor%2)).text()[typeCursor], encounterHandleInput);
-		currentLineText = $('#l'+(typeLineCursor%2)).text();
+		$('#'+typeLineCursor+'c0').css('color','yellow');
+		$('#'+typeLineCursor+'c0').css('text-decoration','underline');
+		Mousetrap.bind($('#l0').text()[typeCursor], encounterHandleInput);
+		currentLineText = $('#l0').text();
 		sock.send('sync2');
 	    }});
 	}, null);
@@ -709,8 +711,9 @@ function updatePlayerBoxes() {
 
 function cycleLines() {
     typeCursor = 0;
-    if (typeLineCursor % 2 == 0) { // finished writing first line
+    if (lineOnScreen == 0) { // finished writing first line
 	$('#l0').html(typeText[typeLineCursor+2]);
+	lineOnScreen++;
 	currentLineText = $('#l1').text();
     }
     else { // finished writing second line - update & send Pair WPM
@@ -721,6 +724,7 @@ function cycleLines() {
 	sock.send('p,'+pairWPM)
 	pairTime = Date.now();
 	pairWords = 0;
+	lineOnScreen = 0;
     }
     typeLineCursor++;
     if (typeLineCursor + 3 == typeText.length) { // getting close to the end of our text - fetch more
@@ -877,17 +881,17 @@ function encounterHandleInput() {
     correctCharacters++;
     Mousetrap.reset();
     
-    if (typeCursor == $('#l'+(typeLineCursor%2)).text().length) {
+    if (typeCursor == $('#l'+lineOnScreen).text().length) {
 	cycleLines();
     }
     
     $('#'+typeLineCursor+'c'+typeCursor).css("color","yellow");
     $('#'+typeLineCursor+'c'+typeCursor).css('text-decoration','underline');
     
-    if ($('#l'+(typeLineCursor%2)).text()[typeCursor] == ' ')
+    if ($('#l'+lineOnScreen).text()[typeCursor] == ' ')
 	Mousetrap.bind('space', encounterHandleInput);
     else {
-	Mousetrap.bind($('#l'+(typeLineCursor%2)).text()[typeCursor], encounterHandleInput);
+	Mousetrap.bind($('#l'+lineOnScreen).text()[typeCursor], encounterHandleInput);
     }
 }
 
