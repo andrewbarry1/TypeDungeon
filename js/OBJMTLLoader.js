@@ -22,9 +22,9 @@ THREE.OBJMTLLoader.prototype = {
 		var mtlLoader = new THREE.MTLLoader( this.manager );
 		mtlLoader.setBaseUrl( url.substr( 0, url.lastIndexOf( "/" ) + 1 ) );
 		mtlLoader.setCrossOrigin( this.crossOrigin );
-		mtlLoader.load( mtlurl, function ( materials ) {
-
-			var materialsCreator = materials;
+	    mtlLoader.load( mtlurl, function ( materials ) {
+		    var materialsCreator = materials;
+		    
 			materialsCreator.preload();
 
 			var loader = new THREE.XHRLoader( scope.manager );
@@ -39,7 +39,7 @@ THREE.OBJMTLLoader.prototype = {
 
 						if ( object.material.name ) {
 
-							var material = materialsCreator.create( object.material.name );
+						    var material = materialsCreator.create( object.material.name );
 
 							if ( material ) object.material = material;
 

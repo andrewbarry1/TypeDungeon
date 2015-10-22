@@ -9,7 +9,9 @@ var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(100, 1, 0.1, 1000);
 var hudCamera = new THREE.OrthographicCamera(125 / -2, 125 / 2, 125 / 2, 125 / -2, 1, 10);
 var hud = new THREE.Scene();
-
+var light = new THREE.AmbientLight( 0xffffff ); // lighting (obj/mtl)
+scene.add(light);
+var loader = new THREE.OBJMTLLoader();
 var renderer = new THREE.WebGLRenderer();
 var sock = new WebSocket("ws://game2.andrewbarry.me/ws");
 var domEvents = new THREEx.DomEvents(camera, renderer.domElement);
@@ -178,7 +180,6 @@ function loadState(stateNumber) {
 	objectsToDraw[objectsToDraw.length] = new THREE.Mesh(buttonGeometry, startButtonMaterial);
 	objectsToDraw[0].position.z = -10;
 	scene.add(objectsToDraw[0]);
-
     }
     else if (gameState == 1) { // lobby
 	for (var x = 0; x < 4; x++) {
@@ -703,6 +704,7 @@ function updateWPMBar() {
 function updatePlayerBoxes() {
     for (var x  =0; x < playerBoxes.length; x++) {
 	var cP = players[playerIndeces[x]];
+	if (cP == undefined) break; // end of players
 	playerBoxes[x].clear(colors[playerIndeces[x]]);
 	playerBoxes[x].drawText(cP.name, 5, 15, 'black', '12pt Arial');
 	playerBoxes[x].drawText("wpm: " + cP.wpm, 5, 35, 'black', '12pt Arial');
