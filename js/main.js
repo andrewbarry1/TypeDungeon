@@ -584,7 +584,7 @@ function playingOnMessage(message) {
 		encounterStartTime = Date.now();
 		window.setTimeout(calculateWPM,1000);
 		for (var x = 1; x < 11; x++) {
-		    typeText[x-1] = tt[x];
+		    typeText[x-1] = tt[x].trim();
 		}
 		$('#l0').html(typeText[0]);
 		$('#l1').html(typeText[1]);
