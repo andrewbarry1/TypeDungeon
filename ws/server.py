@@ -70,7 +70,7 @@ class Room:
             self.map_number += 1
             self.prepare_map(self.map_number)
     def prepare_map(self,map_number):
-        mapfile = open('maps/test2.map','r')
+        mapfile = open('maps/test1.map','r')
         lines = mapfile.readlines()
         for line in lines:
             self.send_to_all(line)
