@@ -441,13 +441,6 @@ function loadingOnMessage(message) {
 	xPos = parseInt(sLocInfo[1]);
 	yPos = parseInt(sLocInfo[2]);
 	camera.position.set(xPos,0,yPos);
-	loader.load('assets/models/halfsize_cube.obj','assets/models/halfsize_cube.mtl',
-		    function(o) {
-			o.position.x = xPos;
-			bigpillar = o;
-			o.position.z = yPos;
-			scene.add(o);
-		    }, function(r) {}, function(r) {});
     }
     else if (message.startsWith("F")) {
 	var fLocInfo = message.split(",");
