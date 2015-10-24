@@ -82,7 +82,7 @@ THREE.MTLLoader.prototype = {
 
 				// New material
 
-				info = { name: value };
+				info = { name: value, minFilter: THREE.MinFilter, magFilter: THREE.MagFilter };
 				materialsInfo[ value ] = info;
 
 			} else if ( info ) {

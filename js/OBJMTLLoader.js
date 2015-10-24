@@ -40,6 +40,8 @@ THREE.OBJMTLLoader.prototype = {
 						if ( object.material.name ) {
 
 						    var material = materialsCreator.create( object.material.name );
+						    material.map.minFilter = THREE.NearestFilter;
+						    material.map.magFilter = THREE.NearestFilter;
 
 							if ( material ) object.material = material;
 

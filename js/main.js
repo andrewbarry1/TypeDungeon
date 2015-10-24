@@ -2,6 +2,9 @@
 
 window.onload = loadGame;
 
+// debug
+var bigpillar;
+
 // IMPORTANT GRAPHICS VARIABLES
 var scene = new THREE.Scene();
 //var camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -438,6 +441,13 @@ function loadingOnMessage(message) {
 	xPos = parseInt(sLocInfo[1]);
 	yPos = parseInt(sLocInfo[2]);
 	camera.position.set(xPos,0,yPos);
+	loader.load('assets/models/halfsize_cube.obj','assets/models/halfsize_cube.mtl',
+		    function(o) {
+			o.position.x = xPos;
+			bigpillar = o;
+			o.position.z = yPos;
+			scene.add(o);
+		    }, function(r) {}, function(r) {});
     }
     else if (message.startsWith("F")) {
 	var fLocInfo = message.split(",");
