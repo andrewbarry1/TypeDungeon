@@ -10,6 +10,7 @@ room_occupants = {}
 rooms = {}
 
 # globals/finals
+maps = {1:['test3.map'],2:['test1.map','test2.map']}
 enemies = {1:['peppermonster.png','evilpenguin.png'],2:['test3.png']}
 TYPO_DAMAGE = 5
 ENC_MIN = 5
@@ -71,7 +72,7 @@ class Room:
             self.new_map_count = 0
             self.prepare_map(self.map_number)
     def prepare_map(self,map_number):
-        mapfile = open('maps/test3.map','r')
+        mapfile = open('maps/' + random.choice(maps[min(len(maps),self.map_number)]),'r')
         lines = mapfile.readlines()
         for line in lines:
             self.send_to_all(line)

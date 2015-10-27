@@ -160,8 +160,8 @@ function newRoomButton() {
 function loadState(stateNumber) {
     if (stateNumber != 4 && stateNumber != 5){ // DO NOT delete 3D objects if moving load>game, game>encounter, encounter>game
 	for (var x = 0; x < objectsToDraw.length; x++) {
-//	    domEvents.removeEventListener(objectsToDraw[x], 'click', function() {}, false);
 	    scene.remove(objectsToDraw[x]);
+	    domEvents.removeEventListener(objectsToDraw[x], 'click', function() {}, false);
 	}
 	objectsToDraw = [];
 	dynamicTextures = [];
