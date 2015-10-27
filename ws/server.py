@@ -158,25 +158,6 @@ class Room:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             
 
 class MyServerProtocol(WebSocketServerProtocol):
@@ -191,8 +172,8 @@ class MyServerProtocol(WebSocketServerProtocol):
             self.room = new_room
             self.sendMessage("newr," + str(new_room))
         elif (payload[:5] == "jroom"):
-            room_to_join = int(payload.split(",")[1])
             try:
+                room_to_join = int(payload.split(",")[1])
                 room = room_occupants[room_to_join]
             except:
                 self.sendMessage("noroom")
@@ -218,8 +199,9 @@ class MyServerProtocol(WebSocketServerProtocol):
             pCount = 0
             rCount = 0
             for i in room_occupants[self.room]:
-                if not(i is None) and clients[i].ready: rCount += 1
-                if not(i is None): pCount += 1
+                if not(i is None):
+                    pCount += 1
+                    if clients[i].ready: rCount += 1
             if rCount == pCount:
                 rooms[self.room] = Room(self.room, [clients[u] for u in room_occupants[self.room] if not(u is None)], [r for r in room_occupants[self.room] if not(r is None)])
                 for c in room_occupants[self.room]:
@@ -255,7 +237,7 @@ class MyServerProtocol(WebSocketServerProtocol):
                 deletingRoom = False
         if (deletingRoom): # delete empty rooms
             del room_occupants[self.room]
-            if not(self.Room is None): # no crashes in lobby
+            if (self.playing): # no crashes in lobby
                 del rooms[self.room]
 
 

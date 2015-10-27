@@ -142,7 +142,6 @@ function loadGame() {
 	loadState(0);
     }
     stepQueue = new Queue();
-    sock.onopen = newRoomButton;
     $(document).on('keydown', function(k) {
 	keys[k.keyCode] = true;
     });
@@ -173,11 +172,21 @@ function loadState(stateNumber) {
     gameState = stateNumber;
     if (gameState == 0) {
 	dynamicTextures[0] = new THREEx.DynamicTexture(64,64);
-	dynamicTextures[0].clear('red');
-	dynamicTextures[0].drawText("Connecting", undefined, 32, 'white');
+	if (sock.readyState == 0) {
+	    dynamicTextures[0].clear('red');
+	    dynamicTextures[0].drawText("Connecting", undefined, 32, 'white');
+	    sock.onopen = newRoomButton;
+	}
+	else {
+	    dynamicTextures[0].clear('green');
+	    dynamicTextures[0].drawText("New Room", undefined, 32, 'white');
+	}
 	var startButtonMaterial = new THREE.MeshBasicMaterial({map:dynamicTextures[0].texture});
 	objectsToDraw[objectsToDraw.length] = new THREE.Mesh(buttonGeometry, startButtonMaterial);
 	objectsToDraw[0].position.z = -10;
+	if (sock.readyState == 1) {
+	    domEvents.addEventListener(objectsToDraw[0], 'click', function(event) { sock.send("newr"); players[0] = yourPlayer;}, false);
+	}
 	scene.add(objectsToDraw[0]);
     }
     else if (gameState == 1) { // lobby
@@ -472,7 +481,6 @@ function loadingOnMessage(message) {
 		    var bMap = bufferedMap[b];
 		    var oi = objectsToDraw.length;
 		    var spaces = bMap.split(",");
-		    
 		    var floorGeom = new THREE.BoxGeometry(1,0,1);
 		    var wallGeomHoriz = new THREE.BoxGeometry(0,1,1);
 		    var wallGeomVert = new THREE.BoxGeometry(1,1,0);
