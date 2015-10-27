@@ -68,9 +68,10 @@ class Room:
         self.new_map_count += 1
         if (self.new_map_count == len(self.clients)):
             self.map_number += 1
+            self.new_map_count = 0
             self.prepare_map(self.map_number)
     def prepare_map(self,map_number):
-        mapfile = open('maps/test1.map','r')
+        mapfile = open('maps/test3.map','r')
         lines = mapfile.readlines()
         for line in lines:
             self.send_to_all(line)

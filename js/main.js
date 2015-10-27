@@ -1,10 +1,6 @@
 // TypeDungeon by Andrew Barry
 
 window.onload = loadGame;
-
-// debug
-var bigpillar;
-
 // IMPORTANT GRAPHICS VARIABLES
 var scene = new THREE.Scene();
 //var camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -164,11 +160,11 @@ function newRoomButton() {
 function loadState(stateNumber) {
     if (stateNumber != 4 && stateNumber != 5){ // DO NOT delete 3D objects if moving load>game, game>encounter, encounter>game
 	for (var x = 0; x < objectsToDraw.length; x++) {
-	    domEvents.removeEventListener(objectsToDraw[x], 'click', function() {}, false);
+//	    domEvents.removeEventListener(objectsToDraw[x], 'click', function() {}, false);
 	    scene.remove(objectsToDraw[x]);
 	}
 	objectsToDraw = [];
-	dynamicTextures = []
+	dynamicTextures = [];
     }
     for (var x = 0; x < spritesToDraw.length; x++) {
 	hud.remove(spritesToDraw[x]);
@@ -223,6 +219,16 @@ function loadState(stateNumber) {
 
     }
     else if (gameState == 3) { // loading next map
+	currentMap = [];
+	xPos = -1;
+	yPos = -1;
+	exitX = -1;
+	exitY = -1;
+	loadSpaceX = 0;
+	loadSpaceY = 0;
+	numTotalWalls = 0;
+	numWalls = 0;
+	bufferedMap = [];
 	playerHP = 150;
 	oPHP = playerHP;
 	currentMap = [];
@@ -757,6 +763,14 @@ function render() {
     renderer.render(hud, hudCamera);
 }
 
+function checkNewPosition() {
+    if (xPos == exitX && yPos == exitY) { // exit!
+	loadState(3);
+	return true;
+    }
+    return false;
+}
+
 function legalMove(direc,forward) {
     var currentSpaceItems = currentMap[xPos][yPos];
     if (direc == 0) {
@@ -939,6 +953,10 @@ function update() {
 	    case 3: xPos--; break;
 	    default: break;
 	    }
+	    if (checkNewPosition()) {
+		stepQueue = new Queue();
+		return;
+	    }
 	    var nextStep = stepQueue.dequeue();
 	    if (nextStep != null) {
 		triggerMovement(nextStep);
@@ -950,6 +968,7 @@ function update() {
 	walkingCounter++;
 	if (walkingCounter >= 20) {
 	    walking = false;
+	    checkNewPosition();
 	    walkingCounter = 0;
 	    switch (direction) {
 	    case 0: yPos++; break;
@@ -957,6 +976,10 @@ function update() {
 	    case 2: yPos--; break;
 	    case 3: xPos++; break;
 	    default: break;
+	    }
+	    if (checkNewPosition()) {
+		stepQueue = new Queue();
+		return;
 	    }
 	    var nextStep = stepQueue.dequeue();
 	    if (nextStep != null) {
