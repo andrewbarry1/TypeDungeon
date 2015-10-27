@@ -216,9 +216,11 @@ class MyServerProtocol(WebSocketServerProtocol):
         elif (payload[:5] == "ready"):
             self.ready = True
             pCount = 0
+            rCount = 0
             for i in room_occupants[self.room]:
-                if not(i is None) and clients[i].ready: pCount += 1
-            if pCount > 0:
+                if not(i is None) and clients[i].ready: rCount += 1
+                if not(i is None): pCount += 1
+            if rCount == pCount:
                 rooms[self.room] = Room(self.room, [clients[u] for u in room_occupants[self.room] if not(u is None)], [r for r in room_occupants[self.room] if not(r is None)])
                 for c in room_occupants[self.room]:
                     if not(c is None):
@@ -239,6 +241,8 @@ class MyServerProtocol(WebSocketServerProtocol):
         ids.append(self.uid)
 
     def onClose(self, wasClean, code, reason):
+        if (self.room is None): # no crashes in main menu
+            return
         ids.remove(self.uid)
         del clients[self.uid]
         room_occupants[self.room][room_occupants[self.room].index(self.uid)] = None
@@ -247,11 +251,12 @@ class MyServerProtocol(WebSocketServerProtocol):
                 clients[i].sendMessage("quit," + str(self.uid))
         deletingRoom = True
         for x in range(0,4):
-            if not(room_occupants[self.room] is None):
+            if not(room_occupants[self.room][x] is None):
                 deletingRoom = False
         if (deletingRoom): # delete empty rooms
             del room_occupants[self.room]
-            del rooms[self.room]
+            if not(self.Room is None): # no crashes in lobby
+                del rooms[self.room]
 
 
 if __name__ == '__main__':
