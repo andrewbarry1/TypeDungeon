@@ -1,6 +1,7 @@
 // TypeDungeon by Andrew Barry
 
 window.onload = loadGame;
+
 // IMPORTANT GRAPHICS VARIABLES
 var scene = new THREE.Scene();
 //var camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -128,7 +129,6 @@ var Queue = Class.extend({
     
 
 function loadGame() {
-    $('#l1').focus();
     sock.onmessage = onMessage;
     //    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setSize(500,500);
@@ -137,6 +137,7 @@ function loadGame() {
     renderer.autoClear = false;
     hudCamera.position.z = 10;
     document.body.appendChild(renderer.domElement);
+    $('#loadText').hide();
     var searchCheck = location.search;
     if (searchCheck.split("=").length == 1) {
 	loadState(0);
@@ -241,9 +242,15 @@ function loadState(stateNumber) {
 	playerHP = 150;
 	oPHP = playerHP;
 	currentMap = [];
-	var loadingDT = new THREEx.DynamicTexture(1024,1024);
+	inControl = false;
+	$('#loadText').fadeIn(400, function() { window.setTimeout(function() { sock.send("prepm"); }, 600); });
+
+	
+	
+	var loadingDT = new THREEx.DynamicTexture(75,75);
 	loadingDT.clear('black');
-	loadingDT.drawText("Moving to Next Floor...", undefined, 512, 'white', '40pt Arial');
+	
+	//loadingDT.drawText("Moving to Next Floor...", undefined, 35, 'white', '12pt Arial');
 	var loadingMat = new THREE.SpriteMaterial({map: loadingDT.texture});
 	var loadingSp = new THREE.Sprite(loadingMat);
 	spritesToDraw[0] = loadingSp;
@@ -252,7 +259,8 @@ function loadState(stateNumber) {
 	loadingSp.scale.set(sW,sH,1);
 	hud.add(loadingSp);
 	loadingSp.position.set(0,0,1);
-	sock.send("prepm");
+	
+
     }
     else if (gameState == 5) { // loading encounter
 	inEncounter = true;
@@ -446,6 +454,7 @@ function loadingOnMessage(message) {
     if (message == "done") {
 	typeSrc = "";
 	typeCursor = 0;
+	$('#loadText').hide();
 	loadState(4);
     }
     else if (message == 'sync0') { // ignore sync0 message - we already know.
@@ -569,8 +578,18 @@ function playingOnMessage(message) {
 	    triggerMovement('mtr');
 	}
     }
-
-
+    
+    else if (message.startsWith("q,")) { // qte letter
+	$('#typeText').show();
+	$('#l0').text("FOR CONTROL: " + message.split(",")[1].toUpperCase());
+	Mousetrap.bind(message.split(",")[1], function() {
+	    sock.send("q");
+	    Mousetrap.reset();
+	    $('#l0').text("");
+	    $('#typeText').hide();
+	});
+	    
+    }
     else if (message == 'grant') {
 	inControl = true;
     }
@@ -586,6 +605,9 @@ function playingOnMessage(message) {
 	else {
 	    sock.send('sync1');
 	}
+    }
+    else if (message == 'sync3') {
+	sock.send('sync3');
     }
 
     else if (message.startsWith('esp')) {
@@ -649,6 +671,7 @@ function encounterOnMessage(message) {
 	enemyHP -= parseInt(message.split(",")[1]);
 	if (enemyHP <= 0) { // you win
 	    loadState(4);
+	    sock.send("sync3");
 	}
 	else {
 	    updateEHPBar();
@@ -658,6 +681,7 @@ function encounterOnMessage(message) {
 	playerHP -= parseInt(message.split(",")[1]);
 	if (playerHP <= 0) { // you died
 	    loadState(4);
+	    sock.send("sync3");
 	}
 	else {
 	    updatePHPBar();

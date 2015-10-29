@@ -29,7 +29,9 @@ class Room:
         self.new_map_count = 0
         self.map_number = 0
         self.controller = None
+        self.in_qte = False
         self.sync_number = 0
+        
 
         # debug
         self.monsters = True
@@ -44,7 +46,6 @@ class Room:
             self.typos[u] = 0
         self.send_to_all("start")
 
-
         
     def send_to_one(self, uid, message):
         self.clients[uid].sendMessage(message)
@@ -56,7 +57,11 @@ class Room:
         for u in self.uids:
             self.clients[u].sendMessage(message)
 
-
+    def swap_control(self): # start qte control swap
+        self.revoke_control()
+        qte_letter = random.choice([c for c in 'abcdefghijklmnopqrstuvwxyz0123456789'])
+        self.in_qte = True
+        self.send_to_all('q,' + qte_letter)
     def revoke_control(self):
         if not(self.controller is None):
             self.send_to_one(self.controller, "revoke")
@@ -64,7 +69,7 @@ class Room:
     def grant_control(self,uid):
         self.send_to_one(uid, "grant")
         self.controller = uid
-            
+        
     def request_new_map(self):
         self.new_map_count += 1
         if (self.new_map_count == len(self.clients)):
@@ -82,7 +87,7 @@ class Room:
 
     def do_start_map(self):
         self.send_to_all("done")
-        self.grant_control(self.uids[0])
+        self.do_sync(3,self.swap_control)
 
     def do_sync(self, sn, func):
         self.sync_func = func
@@ -126,35 +131,37 @@ class Room:
             self.enemy_hp -= dmg
             self.send_to_all('a,' + str(dmg))
             if (self.enemy_hp <= 0): # debug
-                self.grant_control(self.uids[0])
                 self.in_encounter = False
                 self.enc_rate = 0
+                self.do_sync(3, swap_control)
         elif (payload == 't'): # typo
             self.player_hp -= TYPO_DAMAGE
             self.typos[uid] += 1
             self.send_to_all('d,' + str(TYPO_DAMAGE))
             if (self.player_hp <= 0): # debug
-                self.grant_control(self.uids[0])
                 self.in_encounter = False
                 self.enc_rate = 0
-            
+                self.do_sync(3, swap_control)
 
     def on_message(self,uid,payload):
-        if (payload == 'STOP-MONSTERS'):
+        if (payload == 'STOP-MONSTERS'): # debug
             self.monsters = False
         if (self.in_encounter):
             self.on_encounter_message(uid,payload)
             return
         if (payload == 'prepm'): # prepare map
             self.request_new_map()
-        elif (payload == 'mtr' or payload == 'mtl' or payload == 'mf' or payload == 'mb'): # movement
+        elif (payload == 'mtr' or payload == 'mtl' or payload == 'mf' or payload == 'mb') and (uid == self.controller): # movement
             self.send_to_all_but_one(uid,payload)
             if (payload == 'mf' or payload == 'mb'):
                 self.do_encounter_check()
-        elif (payload == 'sync' + str(self.sync_number)):
+        elif (payload == 'sync' + str(self.sync_number)): # sync methods
             self.sync_count += 1
             if (self.sync_count == len(self.uids)):
                 self.sync_func()
+        elif (payload == 'q' and self.in_qte): # qte response - give control
+            self.in_qte = False
+            self.grant_control(uid)
 
 
 
@@ -209,7 +216,6 @@ class MyServerProtocol(WebSocketServerProtocol):
                         clients[c].Room = rooms[self.room]
         elif (payload[:4] == "name"):
             self.name = payload[5:]
-            
 
     def onOpen(self):
         self.uid = int(str(int(time.time())) + str(random.randrange(1000,9999)))

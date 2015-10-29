@@ -55,7 +55,6 @@ function hideControls() {
     }
 }
 
-
 function drawGrid(lines,cols) {
     var ihtml = "";
     for (var x = 0; x < cols; x++) {
@@ -239,6 +238,7 @@ window.onkeydown = function(k) {
 	    placements[cursorX][cursorY] += 'c'+token;
 	}
 	else {
+	    placements[cursorX][cursorY] = placements[cursorX][cursorY].replace('c'+elem.innerHTML,'');
 	    elem.innerHTML = ' ';
 	}
     }
