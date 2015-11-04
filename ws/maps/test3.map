@@ -1,8 +1,7 @@
+WN,2
+MN,10
 S,0,0
 F,3,3
-WN,2
-WP,t,test
-WP,u,uglyfloor
 wtatfu,atdtfu,dtatfu,atdtfu,,,,,,
 wtfu,fu,fu,fu,,,,,,
 wtfu,fu,fu,fu,,,,,,
@@ -13,3 +12,5 @@ wtfu,fu,fu,fu,,,,,,
 ,,,,,,,,,
 ,,,,,,,,,
 ,,,,,,,,,
+WP,t,test	
+WP,u,uglyfloor	

@@ -79,6 +79,8 @@ var loadSpaceX = 0;
 var loadSpaceY = 0;
 var numTotalWalls = 0;
 var numWalls = 0;
+var numTotalMapLines = 0;
+var numTotalWalls = 0;
 var bufferedMap = [];
 
 // GLOBALLY USEFUL ASSETS
@@ -237,6 +239,8 @@ function loadState(stateNumber) {
 	loadSpaceX = 0;
 	loadSpaceY = 0;
 	numTotalWalls = 0;
+	numTotalMapLines = 0;
+	numMapLines = 0;
 	numWalls = 0;
 	bufferedMap = [];
 	playerHP = 150;
@@ -296,9 +300,6 @@ function loadState(stateNumber) {
 	enemySprite.magFilter = THREE.NearestFilter;
 	var eMat = new THREE.SpriteMaterial({map: enemySprite});
 	var eSp = new THREE.Sprite(eMat);
-	//	var scaleFactor = Math.min(
-	//    (window.innerHeight/1.5)/eMat.map.image.height,
-	//    (window.innerWidth/2)/eMat.map.image.width);
 	eSp.scale.set(eMat.map.image.width, eMat.map.image.height, 1);
 	eSp.position.set(0,0,1);
 	spritesToDraw[spritesToDraw.length] = eSp;
@@ -451,13 +452,7 @@ function onMessage(m) {
 
 // onMessage for loading maps
 function loadingOnMessage(message) {
-    if (message == "done") {
-	typeSrc = "";
-	typeCursor = 0;
-	$('#loadText').hide();
-	loadState(4);
-    }
-    else if (message == 'sync0') { // ignore sync0 message - we already know.
+    if (message == 'sync0' || message == 'sync3' || message == 'revoke') { // ignore useless messages
 	return;
     }
     else if (message.startsWith("S")) {
@@ -474,6 +469,16 @@ function loadingOnMessage(message) {
     else if (message.startsWith("WN")) { // number of wall paths
 	numTotalWalls = parseInt(message.split(',')[1]);
 	numWalls = 0;
+	if (numTotalMapLines != 0) {
+	    sock.send('sync0');
+	}
+    }
+    else if (message.startsWith("MN")) { // number of lines to receive for the map
+	numTotalMapLines = parseInt(message.split(',')[1]);
+	numMapLines = 0;
+	if (numTotalWalls != 0) {
+	    sock.send('sync0');
+	}
     }
     else if (message.startsWith("WP")) { // wall path
 	var token = message.split(',')[1];
@@ -483,65 +488,74 @@ function loadingOnMessage(message) {
 	    t.magFilter = THREE.NearestFilter;
 	    textures[token] = t;
 	    numWalls++;
-	    if (numWalls == numTotalWalls) {
-		loadSpaceX = 0;
-		loadSpaceY = 0;
-		for (var b = 0; b < bufferedMap.length; b++) {
-		    var bMap = bufferedMap[b];
-		    var oi = objectsToDraw.length;
-		    var spaces = bMap.split(",");
-		    var floorGeom = new THREE.BoxGeometry(1,0,1);
-		    var wallGeomHoriz = new THREE.BoxGeometry(0,1,1);
-		    var wallGeomVert = new THREE.BoxGeometry(1,1,0);
-		    currentMap[currentMap.length] = spaces;
-		    for (var x = 0; x < spaces.length; x++) {
-			var items_at_space = spaces[x];
-			for (var i = 0; i < items_at_space.length; i+= 2) {
-			    var item = items_at_space.charAt(i);
-			    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
-			    if (item == 'f') {
-				objectsToDraw[oi] = new THREE.Mesh(floorGeom, mat);
-				objectsToDraw[oi].position.set(loadSpaceX, -.5, loadSpaceY);
-			    }
-			    else if (item == 'c') {
-				objectsToDraw[oi] = new THREE.Mesh(floorGeom, mat);
-				objectsToDraw[oi].position.set(loadSpaceX, .5, loadSpaceY);
-			    }
-			    else if (item == 'd') {
-				objectsToDraw[oi] = new THREE.Mesh(wallGeomHoriz, mat);
-				objectsToDraw[oi].position.set(loadSpaceX + 0.5, 0, loadSpaceY);
-			    }
-			    else if (item == 'a') {
-				objectsToDraw[oi] = new THREE.Mesh(wallGeomHoriz, mat);
-				objectsToDraw[oi].position.set(loadSpaceX - 0.5, 0, loadSpaceY);
-			    }
-			    else if (item == 's') {
-				objectsToDraw[oi] = new THREE.Mesh(wallGeomVert, mat);
-				objectsToDraw[oi].position.set(loadSpaceX, 0, loadSpaceY + 0.5);
-			    }
-			    else if (item == 'w') {
-				objectsToDraw[oi] = new THREE.Mesh(wallGeomVert, mat);
-				objectsToDraw[oi].position.set(loadSpaceX, 0, loadSpaceY - 0.5);
-			    }
-			    if ('wasdfc'.indexOf(item) != -1) {
-				scene.add(objectsToDraw[oi++]);
-			    }
-			}
-			loadSpaceY++;
-		    }
-		    loadSpaceX++;
-		    loadSpaceY = 0;
-		} // end of final for
-		sock.send('sync0');
+	    if (numMapLines == numTotalMapLines && numWalls == numTotalWalls) {
+		createMap();
 	    }
 	}, null);
-
-
 	textures[token] = path;
     }
     else {
 	bufferedMap[bufferedMap.length] = message;
+	numMapLines++;
+	if (numMapLines == numTotalMapLines && numWalls == numTotalWalls) {
+	    createMap();
+	}
     }
+}
+function createMap() {
+    loadSpaceX = 0;
+    loadSpaceY = 0;
+    var floorGeom = new THREE.BoxGeometry(1,0,1);
+    var wallGeomHoriz = new THREE.BoxGeometry(0,1,1);
+    var wallGeomVert = new THREE.BoxGeometry(1,1,0);
+    for (var b = 0; b < bufferedMap.length; b++) {
+	var bMap = bufferedMap[b];
+	var oi = objectsToDraw.length;
+	var spaces = bMap.split(",");
+	currentMap[currentMap.length] = spaces;
+	for (var x = 0; x < spaces.length; x++) {
+	    var items_at_space = spaces[x];
+	    for (var i = 0; i < items_at_space.length; i+= 2) {
+		var item = items_at_space.charAt(i);
+		var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
+		if (item == 'f') {
+		    objectsToDraw[oi] = new THREE.Mesh(floorGeom, mat);
+		    objectsToDraw[oi].position.set(loadSpaceX, -.5, loadSpaceY);
+		}
+		else if (item == 'c') {
+		    objectsToDraw[oi] = new THREE.Mesh(floorGeom, mat);
+		    objectsToDraw[oi].position.set(loadSpaceX, .5, loadSpaceY);
+		}
+		else if (item == 'd') {
+		    objectsToDraw[oi] = new THREE.Mesh(wallGeomHoriz, mat);
+		    objectsToDraw[oi].position.set(loadSpaceX + 0.5, 0, loadSpaceY);
+		}
+		else if (item == 'a') {
+		    objectsToDraw[oi] = new THREE.Mesh(wallGeomHoriz, mat);
+		    objectsToDraw[oi].position.set(loadSpaceX - 0.5, 0, loadSpaceY);
+		}
+		else if (item == 's') {
+		    objectsToDraw[oi] = new THREE.Mesh(wallGeomVert, mat);
+		    objectsToDraw[oi].position.set(loadSpaceX, 0, loadSpaceY + 0.5);
+		}
+		else if (item == 'w') {
+		    objectsToDraw[oi] = new THREE.Mesh(wallGeomVert, mat);
+		    objectsToDraw[oi].position.set(loadSpaceX, 0, loadSpaceY - 0.5);
+		}
+		if ('wasdfc'.indexOf(item) != -1) {
+		    scene.add(objectsToDraw[oi++]);
+		}
+	    }
+	    loadSpaceY++;
+	}
+	loadSpaceX++;
+	loadSpaceY = 0;
+    } // end of final for
+    typeSrc = "";
+    typeCursor = 0;
+    $('#loadText').hide();
+    loadState(4);
+    sock.send('sync3');
 }
 
 // onMessage for gameplay

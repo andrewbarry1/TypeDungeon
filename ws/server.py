@@ -31,6 +31,7 @@ class Room:
         self.controller = None
         self.in_qte = False
         self.sync_number = 0
+        self.map = None
         
 
         # debug
@@ -76,17 +77,20 @@ class Room:
             self.map_number += 1
             self.new_map_count = 0
             self.prepare_map(self.map_number)
+            
     def prepare_map(self,map_number):
         mapfile = open('maps/' + random.choice(maps[min(len(maps),self.map_number)]),'r')
-        lines = mapfile.readlines()
-        for line in lines:
-            self.send_to_all(line)
+        self.map = mapfile.readlines()
         mapfile.close()
-        self.encounter_rate = 0
+        self.send_to_all(self.map[0])
+        self.send_to_all(self.map[1])
         self.do_sync(0,self.do_start_map)
 
     def do_start_map(self):
-        self.send_to_all("done")
+        self.encounter_rate = 0
+        for line in self.map[2:]:
+            self.send_to_all(line)
+        self.encounter_rate = 0
         self.do_sync(3,self.swap_control)
 
     def do_sync(self, sn, func):

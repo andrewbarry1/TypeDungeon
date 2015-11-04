@@ -1,8 +1,7 @@
+WN,2
+MN,15
 S,2,3
 F,3,4
-WN,2
-WP,t,test
-WP,u,uglyfloor
 ,,,fu,,fu,fu,,,,,,
 ,fucu,atwtfucu,atfucu,atstfucu,wtatfucu,dtatfucu,statfucu,fucu,,,,
 ,fucu,wtfucu,fucu,stfucu,wtdtfucu,statfucu,wtdtfucu,atstfucu,,,,
@@ -18,3 +17,5 @@ WP,u,uglyfloor
 ,,,,,,,,,,,,
 ,,,,,,,,,,,,
 ,,,,,,,,,,,,
+WP,t,test
+WP,u,uglyfloor
