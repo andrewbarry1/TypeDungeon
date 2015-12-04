@@ -16,6 +16,8 @@ var gridHeight = 10;
 
 var placements = [];
 
+var placedObjectInfo = {};
+
 var textFile;
 var mapText = "";
 
@@ -25,8 +27,8 @@ var placingWalls = false;
 function load() {
     hideControls();
     $('#wallType').hide();
+    $('#objectWindow').hide();
     $.ajax({url:"walls.py",method:"POST", success:function(r) {
-	$('#loading').hide();
 	document.getElementById("wallType").innerHTML = r;
 	document.getElementById("wallType").onchange = function() {
 	    if (document.getElementById("wallType").selectedIndex == 0) {
@@ -40,7 +42,18 @@ function load() {
 	drawGrid(gridWidth,gridHeight);
 	placeCursor(cursorX,cursorY);
 	moveCursor(5,5);
-	$('#wallType').show();
+	$("#loading").text("Loading object list, wait some moar");
+	$.ajax({url: "objs.py", method:"POST", success: function(r2) {
+	    $('#loading').hide();
+	    document.getElementById("objType").innerHTML = r2;
+	    document.getElementById("objType").onchange = function() {
+		placedObjectInfo[cursorX+','+cursorY].objIndex = document.getElementById("objType").selectedIndex;
+	    };
+	    document.getElementById("objSolid").onchange = function() {
+		placedObjectInfo[cursorX+','+cursorY].solid = !placedObjectInfo[cursorX+','+cursorY].solid;
+	    };
+	    $('#wallType').show();
+	}});
     }});
 }
 
@@ -71,7 +84,7 @@ function drawGrid(lines,cols) {
 	}
 	ihtml += "|\n";
 	for (var x = 0; x < cols; x++) {
-	    ihtml += "|<u> <span id='"+x+","+l+"s'> </span> </u>";
+	    ihtml += "|<u><span id='"+x+","+l+"o'> </span><span id='"+x+","+l+"s'> </span><span id='"+x+","+l+"r'> </span></u>";
 	}
 	ihtml += "|\n";
     }
@@ -103,28 +116,43 @@ function moveCursor(nx,ny) {
     cursorX = nx;
     cursorY = ny;
     placeCursor(nx,ny);
+    if (placements[cursorX][cursorY].indexOf("o") % 2 == 0) {
+	showObjectWindow();
+    }
 }
 
+// TODO
+function showObjectWindow() {
+    $('#objSolid').prop('checked', placedObjectInfo[cursorX+','+cursorY].solid);
+    $('#objType').prop('selectedIndex',placedObjectInfo[cursorX+','+cursorY].objIndex);
+    $('#objectWindow').show();
+}
+function hideObjectWindow() {
+    $('#objectWindow').hide();
+}
+
+// TODO
 function updateMap() {
     if (startX == -1 || finishX == -1) {
 	alert("Place the start and the finish before saving.");
 	return;
     }
 
-    mapText = "S," + startX + "," + startY + "\nF," + finishX + "," + finishY + "\n";
+    mapText = "WN," + (walls.length-1) + "\n";
+    mapText += "MN," + placements.length + "\n";
+    mapText += "S," + startX + "," + startY + "\nF," + finishX + "," + finishY + "\n";
     var walls = document.getElementById("wallType").options;
-    mapText += "WN," + (walls.length-1) + "\n";
-    for (var x = 1; x < walls.length; x++) {
-	var wallToken = walls[x].id;
-	var wallName = walls[x].innerHTML.split(" ")[0];
-	mapText+= "WP," + wallToken + "," + wallName + "\n";
-    }
 
     for (var x = 0; x < placements.length; x++) {
 	for (var y = 0; y < placements[x].length; y++) {
 	    mapText += placements[x][y] + ",";
 	}
 	mapText = mapText.substring(0,mapText.length-1) + "\n";
+    }
+    for (var x = 1; x < walls.length; x++) {
+	var wallToken = walls[x].id;
+	var wallName = walls[x].innerHTML.split(" ")[0];
+	mapText+= "WP," + wallToken + "," + wallName + "\n";
     }
     
 
@@ -257,6 +285,20 @@ window.onkeydown = function(k) {
 	}
     }
 
+    //object placement
+    else if (k.keyCode == 79) { // o
+	var elem = $('#'+cursorX+'\\,'+cursorY+'o')[0];
+	console.log(elem.innerHTML);
+	if (elem.innerHTML != 'o') {
+	    placedObjectInfo[cursorX+','+cursorY] = {solid: false, objIndex: 0};
+	    showObjectWindow();
+	}
+	else {
+	    delete placedObjectInfo[cursorX+','+cursorY];
+	    hideObjectWindow();
+	}
+    }
+
     // player start / finish
     else if (k.keyCode == 32) { // place player start
 	if (cursorX != finishX || cursorY != finishY) {
@@ -284,7 +326,6 @@ window.onkeydown = function(k) {
     }
 
 }
-
 
 function drawWalls() {
     for (var x = 0; x < placements.length; x++) {

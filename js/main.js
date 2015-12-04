@@ -40,26 +40,23 @@ var rotateTo;
 var walkingCounter = 0;
 var stepQueue;
 var inControl = false;
+var startPos;
 
 // ENCOUNTER VARIABLES
 var inEncounter = false;
 var enemySprite;
 var enemyWPM;
 var enemyHP;
-var playerBoxes = [];
 var oEHP;
-var oPHP;
-var wpms = [0,0,0,0];
-var typeText;
+var oPHP = 150;
+var typeText = [];
 var typeSrc;
 var typeCursor = 0;
 var typeLineCursor = 0;
 var lineOnScreen = 0;
 var currentLineText;
-var eHPbar;
-var wpmbar;
-var pHPbar;
 var playerHP;
+var barctx;
 var correctCharacters = 0;
 var encounterStartTime;
 var elapsedTime = 0;
@@ -132,14 +129,17 @@ var Queue = Class.extend({
 
 function loadGame() {
     sock.onmessage = onMessage;
-    //    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setSize(500,500);
     renderer.setSize(250,250,false);
-    //    renderer.setSize(window.innerWidth/4, window.innerHeight/4, false);
     renderer.autoClear = false;
     hudCamera.position.z = 10;
+    renderer.domElement.className += " mainDisplay";
     document.body.appendChild(renderer.domElement);
     $('#loadText').hide();
+    $('#typeText').hide();
+    $('#lobby').hide();
+    $('#hpBars').hide();
+    barctx = document.getElementById("hpBars").getContext("2d");
     var searchCheck = location.search;
     if (searchCheck.split("=").length == 1) {
 	loadState(0);
@@ -162,8 +162,10 @@ function newRoomButton() {
 function loadState(stateNumber) {
     if (stateNumber != 4 && stateNumber != 5){ // DO NOT delete 3D objects if moving load>game, game>encounter, encounter>game
 	for (var x = 0; x < objectsToDraw.length; x++) {
-	    scene.remove(objectsToDraw[x]);
-	    domEvents.removeEventListener(objectsToDraw[x], 'click', function() {}, false);
+	    if (objectsToDraw[x] != null) {
+		scene.remove(objectsToDraw[x]);
+//		domEvents.removeEventListener(objectsToDraw[x], 'click', function() {}, false);
+	    }
 	}
 	objectsToDraw = [];
 	dynamicTextures = [];
@@ -193,40 +195,33 @@ function loadState(stateNumber) {
 	scene.add(objectsToDraw[0]);
     }
     else if (gameState == 1) { // lobby
+	$('#lobby').show();
 	for (var x = 0; x < 4; x++) {
 	    dynamicTextures[x] = new THREEx.DynamicTexture(64,64);
 	    dynamicTextures[x].clear(colors[x]);
 	}
 	for (var x = 0; x < 4; x++) {
 	    if (x < players.length && players[x] != undefined && players[x].name != undefined) {
-		dynamicTextures[x].drawText(players[x].name, undefined, 32, 'black');
+		$('#lobby'+x).text(players[x].name);
 	    }
 	    else {
-		dynamicTextures[x].drawText("Waiting...", undefined, 32, 'black');
+		$('#lobby'+x).text("Waiting...");
 	    }
 	}
 	dynamicTextures[4] = new THREEx.DynamicTexture(512,512);
 	dynamicTextures[4].clear('black');
-	dynamicTextures[4].drawText("Share the link in your location bar with friends. Click here when ready.", undefined, 256, 'white');
-	var greenMat = new THREE.MeshBasicMaterial({map:dynamicTextures[0].texture});
-	var redMat = new THREE.MeshBasicMaterial({map:dynamicTextures[1].texture});
-	var blueMat = new THREE.MeshBasicMaterial({map:dynamicTextures[2].texture});
-	var whiteMat = new THREE.MeshBasicMaterial({map:dynamicTextures[3].texture});
+	dynamicTextures[4].drawText("Share the link in your location bar with friends.", undefined, 256, 'white');
+	dynamicTextures[4].drawText("Click here when you're ready to start.", undefined, 300, 'white');
 	var readyMat = new THREE.MeshBasicMaterial({map:dynamicTextures[4].texture});
-	objectsToDraw[0] = new THREE.Mesh(buttonGeometry, greenMat);
-	objectsToDraw[0].position.set(-10,7,-10);
-	objectsToDraw[1] = new THREE.Mesh(buttonGeometry, redMat);
-	objectsToDraw[1].position.set(-10,-7,-10);
-	objectsToDraw[2] = new THREE.Mesh(buttonGeometry, blueMat);
-	objectsToDraw[2].position.set(10,7,-10);
-	objectsToDraw[3] = new THREE.Mesh(buttonGeometry, whiteMat);
-	objectsToDraw[3].position.set(10,-7,-10);
 	objectsToDraw[4] = new THREE.Mesh(hugeButtonGeometry, readyMat);
 	objectsToDraw[4].position.set(0,0,-11);
-	domEvents.addEventListener(objectsToDraw[4], 'click', function(event) { sock.send("ready"); dynamicTextures[4].clear('black'); dynamicTextures[4].drawText("Waiting for all players to be ready...", undefined, 256, 'white'); }, false);
-	for (var x = 0; x < objectsToDraw.length; x++) {
-	    scene.add(objectsToDraw[x]);
-	}
+	$('canvas').on('click', function() {
+	    sock.send("ready");
+	    $('canvas').on('click', function() {});
+	    dynamicTextures[4].clear('black');
+	    dynamicTextures[4].drawText("Waiting for all players to be ready...", undefined, 256, 'white');
+	});
+	scene.add(objectsToDraw[4]);
 	window.history.replaceState('Object','Title','/?room=' + room_id);
 
     }
@@ -244,7 +239,6 @@ function loadState(stateNumber) {
 	numWalls = 0;
 	bufferedMap = [];
 	playerHP = 150;
-	oPHP = playerHP;
 	currentMap = [];
 	inControl = false;
 	$('#loadText').fadeIn(400, function() { window.setTimeout(function() { sock.send("prepm"); }, 600); });
@@ -278,24 +272,6 @@ function loadState(stateNumber) {
 	    default: { spPos = []; break; }
 	}
 	$('#typeText').show();
-	
-	for (var x = 0; x < playerIndeces.length; x++) {
-	    var cP = players[playerIndeces[x]];
-	    var cPDT = new THREEx.DynamicTexture(150,40);
-	    cPDT.texture.minFilter = THREE.NearestFilter;
-	    cPDT.texture.magFilter = THREE.NearestFilter;
-	    cPDT.clear(colors[playerIndeces[x]]);
-	    cPDT.drawText(cP.name, 5, 15, 'black', '12pt Arial');
-	    cPDT.drawText("wpm: " + cP.wpm, 5, 35, 'black', '12pt Arial');
-	    var cPMat = new THREE.SpriteMaterial({map: cPDT.texture});
-	    var cPSp = new THREE.Sprite(cPMat);
-	    cPSp.scale.set(cPMat.map.image.width, cPMat.map.image.height, 1);
-	    cPSp.position.set(spPos[x], (-1 * window.innerHeight/2) + 25, 1);
-	    dynamicTextures[dynamicTextures.length] = cPDT;
-	    spritesToDraw[spritesToDraw.length] = cPSp;
-	    hud.add(cPSp);
-	    playerBoxes.push(cPDT);
-	}
 	enemySprite.minFilter = THREE.NearestFilter;
 	enemySprite.magFilter = THREE.NearestFilter;
 	var eMat = new THREE.SpriteMaterial({map: enemySprite});
@@ -304,47 +280,13 @@ function loadState(stateNumber) {
 	eSp.position.set(0,0,1);
 	spritesToDraw[spritesToDraw.length] = eSp;
 	hud.add(eSp);
-
-	eHPbar = new THREEx.DynamicTexture(75, 315);
-	eHPbar.texture.minFilter = THREE.NearestFilter;
-	eHPbar.texture.magFilter = THREE.NearestFilter;
-	var eHPMat = new THREE.SpriteMaterial({map: eHPbar.texture});
-	var eHPSp = new THREE.Sprite(eHPMat);
-	spritesToDraw[spritesToDraw.length] = eHPSp;
-	dynamicTextures[dynamicTextures.length] = eHPbar;
-	eHPSp.scale.set(eHPMat.map.image.width, eHPMat.map.image.height, 1);
-	//eHPSp.position.set((window.innerWidth / 4) + 55,0,1);
-	//eHPSp.position.set(75,0,1);
-	updateEHPBar();
-	hud.add(eHPSp);
-	pHPbar = new THREEx.DynamicTexture(75, 315);
-	pHPbar.texture.minFilter = THREE.NearestFilter;
-	pHPbar.texture.magFilter = THREE.NearestFilter;
-	var pHPMat = new THREE.SpriteMaterial({map: pHPbar.texture});
-	var pHPSp = new THREE.Sprite(pHPMat);
-	spritesToDraw[spritesToDraw.length] = pHPSp;
-	dynamicTextures[dynamicTextures.length] = pHPbar;
-	pHPSp.scale.set(pHPMat.map.image.width, pHPMat.map.image.height, 1);
-	//pHPSp.position.set((window.innerWidth / 4),0,1);
-	//pHPSp.position.set(-25,0,1);
-	updatePHPBar();
-	hud.add(pHPSp);
-
-	wpmbar = new THREEx.DynamicTexture(75, 315);
-	wpmbar.texture.minFilter = THREE.NearestFilter;
-	wpmbar.texture.magFilter = THREE.NearestFilter;
-	var wpmMat = new THREE.SpriteMaterial({map: wpmbar.texture});
-	var wpmSp = new THREE.Sprite(wpmMat);
-	spritesToDraw[spritesToDraw.length] = wpmSp;
-	dynamicTextures[dynamicTextures.length] = wpmbar;
-	wpmSp.scale.set(wpmMat.map.image.width, wpmMat.map.image.height, 1);
-	//wpmSp.position.set(-1 * window.innerWidth / 4, 0, 1);
-	updateWPMBar();
-	hud.add(wpmSp);
+	updateHPBars();
+	$('#hpBars').show();
     }
     else if (stateNumber == 4) { // entering new floor or exiting fight
 	inEncounter = false;
 	$('#typeText').hide();
+	$('#hpBars').hide();
     }
 
 }
@@ -368,6 +310,10 @@ function onMessage(m) {
 	    if (players[x] != undefined) {
 		playerIndeces[playerIndeces.length] = x;
 		playerIDs[players[x].id] = x;
+		$('#lobby'+x).text(players[x].name + " - " + players[x].wpm + "wpm");
+	    }
+	    else {
+		$('#lobby'+x).text('');
 	    }
 	}
 	bufferedMap = [];
@@ -418,9 +364,7 @@ function onMessage(m) {
 	    if (players[x].id == qid) {
 		players[x] = undefined;
 		if (gameState == 1) {
-		    dynamicTextures[x].clear(colors[x]);
-		    dynamicTextures[x].drawText("Waiting...", undefined, 32, "black");
-		    dynamicTextures[x].needsUpdate = true;
+		    $('#lobby'+x).text('Waiting...');
 		}
 	    }
 	}
@@ -435,10 +379,8 @@ function onMessage(m) {
 	var j_name = j_info[2];
 	for (var x = 0; x < 4; x++) {
 	    if (players[x] == undefined || players[x].name == undefined) {
-		dynamicTextures[x].clear(colors[x]);
-		dynamicTextures[x].drawText(j_name, undefined, 32, 'black');
-		dynamicTextures[x].needsUpdate = true;
 		players[x] = new Player(j_uid, j_name);
+		$('#lobby'+x).text(players[x].name);
 		break;
 	    }
 	}
@@ -456,15 +398,25 @@ function loadingOnMessage(message) {
 	return;
     }
     else if (message.startsWith("S")) {
-	var sLocInfo = message.split(",");
-	xPos = parseInt(sLocInfo[1]);
-	yPos = parseInt(sLocInfo[2]);
+	startPos = message.split(",");
+	xPos = parseInt(startPos[1]);
+	yPos = parseInt(startPos[2]);
 	camera.position.set(xPos,0,yPos);
     }
     else if (message.startsWith("F")) {
 	var fLocInfo = message.split(",");
 	exitX = parseInt(fLocInfo[1]);
 	exitY = parseInt(fLocInfo[2]);
+	var exG = new THREE.BoxGeometry(.3,.3,.3);
+	THREE.ImageUtils.loadTexture("assets/exit.png", undefined, function(t) {
+	    t.minFilter = THREE.NearestFilter;
+	    t.magFilter = THREE.NearestFilter;
+	    var exM = new THREE.MeshBasicMaterial({ map: t });
+	    exC = new THREE.Mesh(exG, exM);
+	    exC.position.set(exitX, 0, exitY);
+	    objectsToDraw.push(exC);
+	    scene.add(exC);
+	}, null);
     }
     else if (message.startsWith("WN")) { // number of wall paths
 	numTotalWalls = parseInt(message.split(',')[1]);
@@ -560,6 +512,7 @@ function createMap() {
 
 // onMessage for gameplay
 function playingOnMessage(message) {
+    console.log(message);
     if (message == 'mf') {
 	if (walking || turning) {
 	    stepQueue.enqueue('mf');
@@ -594,8 +547,9 @@ function playingOnMessage(message) {
     }
     
     else if (message.startsWith("q,")) { // qte letter
-	$('#typeText').show();
+	$('#l1').text('');
 	$('#l0').text("FOR CONTROL: " + message.split(",")[1].toUpperCase());
+	$('#typeText').show();
 	Mousetrap.bind(message.split(",")[1], function() {
 	    sock.send("q");
 	    Mousetrap.reset();
@@ -604,14 +558,20 @@ function playingOnMessage(message) {
 	});
 	    
     }
-    else if (message == 'grant') {
-	inControl = true;
+    else if (message.startsWith("grant")) {
+	var g_uid = message.split(',')[1];
+	if (g_uid == yourPlayer.id) {
+	    inControl = true;
+	}
+	$('#l0').text(players[playerIDs[parseInt(g_uid)]].name + " has control!");
+	$('#typeText').show();
+	window.setTimeout(function() { if ($('#l0').text().endsWith(" has control!")) { $('#typeText').hide(); }}, 2500);
     }
     else if (message == 'revoke') {
 	    inControl = false;
     }
     
-    // sync
+    // sync functions
     else if (message == 'sync1') {
 	if (walking || turning) {
 	    stepQueue.enqueue('sync1');
@@ -627,14 +587,17 @@ function playingOnMessage(message) {
     else if (message.startsWith('esp')) {
 	THREE.ImageUtils.loadTexture('assets/' + message.split(':')[1], undefined, function(esp) {
 	    enemySprite = esp;
+	    typeLineCursor = 0;
 	    $.ajax({url:'text/get.py', method:'POST', data: {"l":charactersPerLine, "n":typeLineCursor}, success: function(r) {
 		var tt = r.split("\n");
 		typeSrc = tt[0];
 		typeText = [];
 		typeCursor = 0;
 		pairWords = 0;
+		playerHP = oPHP;
 		lineOnScreen = 0;
 		pairTime = Date.now();
+		correctCharacters = 0;
 		encounterStartTime = Date.now();
 		window.setTimeout(calculateWPM,1000);
 		for (var x = 1; x < 11; x++) {
@@ -671,11 +634,11 @@ function calculateWPM() {
     if (inEncounter) {
 	window.setTimeout(calculateWPM,1000);
     }
-    updateWPMBar();
-    updatePlayerBoxes();
+    updateWPMs();
 }
 
 function encounterOnMessage(message) {
+    console.log(message);
     if (message.startsWith("w")) { // wpm report from player
 	var wId = message.split(",")[1];
 	var wWPM = parseInt(message.split(",")[2]);
@@ -688,82 +651,65 @@ function encounterOnMessage(message) {
 	    sock.send("sync3");
 	}
 	else {
-	    updateEHPBar();
+	    updateHPBars();
 	}
     }
     else if (message.startsWith("d")) { // player takes damage
 	playerHP -= parseInt(message.split(",")[1]);
 	if (playerHP <= 0) { // you died
-	    loadState(4);
-	    sock.send("sync3");
+	    doKill();
 	}
 	else {
-	    updatePHPBar();
+	    updateHPBars();
 	}
     }
 
-    // TODO - damage reports for player/enemy, end-of-battle stuff
+    // deathsync
+    else if (message == 'kill') {
+	console.log("respawning");
+	xPos = parseInt(startPos[1]);
+	yPos = parseInt(startPos[2]);
+	camera.position.set(xPos,0,yPos);
+	loadState(4);
+	playerHP = oPHP;
+	sock.send("sync3");
+    }
+
 }
 
-function totalWPM() {
-    var tot = 0;
-    for (var x = 0; x < players.length; x++) {
+function updateHPBars() {
+    barctx.fillStyle = 'black';
+    barctx.fillRect(0,0,250,375);
+    barctx.fillStyle = 'white';
+
+    var pixelTickRed = (oEHP / 300);
+    var pixelsOfRed = parseInt(enemyHP / pixelTickRed);
+    barctx.fillStyle = 'red';
+    barctx.fillRect(5, 370-pixelsOfRed, 50, pixelsOfRed);
+    
+    var pixelTickBlue = (oPHP / 300);
+    var pixelsOfBlue = parseInt(playerHP / pixelTickBlue);
+    barctx.fillStyle = 'blue';
+    barctx.fillRect(65, 370-pixelsOfBlue, 50, pixelsOfBlue);
+}
+
+function updateWPMs() {
+    for (var x = 0; x < 4; x++) {
 	if (players[x] != null) {
-	    tot += players[x].wpm;
+	    $('#lobby'+x).text(players[x].name + " - " + players[x].wpm + "wpm");
 	}
     }
-    return tot;
 }
 
-function updateEHPBar() {
-    var pixelTick = (oEHP / 300);
-    var pixelsOfRed = parseInt(enemyHP / pixelTick);
-    eHPbar.context.fillStyle = 'black';
-    eHPbar.clear();
-    eHPbar.context.fillRect(0,15,25,315);
-    eHPbar.context.fillStyle = 'red';
-    eHPbar.context.fillRect(0,315-pixelsOfRed,25,315);
-    eHPbar.drawText(enemyHP,30,325-pixelsOfRed,'red');
-    eHPbar.drawText("enemy HP",0,12,'red');
-}
-
-function updatePHPBar() {
-    var pixelTick = (oPHP / 300);
-    var pixelsOfBlue = parseInt(playerHP / pixelTick);
-    pHPbar.context.fillStyle = 'black';
-    pHPbar.clear();
-    pHPbar.context.fillRect(0,15,25,315);
-    pHPbar.context.fillStyle = 'blue';
-    pHPbar.context.fillRect(0,315-pixelsOfBlue,25,315);
-    pHPbar.drawText(playerHP,30,325-pixelsOfBlue,'blue');
-    pHPbar.drawText("your HP",0,12,'blue');
-}
-
-function updateWPMBar() {
-    var twpm = totalWPM();
-    var pixelTick = (enemyWPM*2) / 300;
-    var pixelsOfRed = 150;
-    var pixelsOfBlue = Math.min(300, parseInt(twpm / pixelTick));
-    wpmbar.context.fillStyle = 'black';
-    wpmbar.clear();
-    wpmbar.context.fillRect(0,15,25,315);
-    wpmbar.context.fillStyle = 'red';
-    wpmbar.context.fillRect(0,165,25,315);
-    wpmbar.drawText(enemyWPM,30,165,'red');
-    wpmbar.drawText("WPM",0,12,'red');
-    wpmbar.context.fillStyle = 'blue';
-    wpmbar.context.fillRect(0,315-pixelsOfBlue,25,315);
-    wpmbar.drawText(twpm,30,305-pixelsOfBlue,'blue');
-}
-
-function updatePlayerBoxes() {
-    for (var x  =0; x < playerBoxes.length; x++) {
-	var cP = players[playerIndeces[x]];
-	if (cP == undefined) break; // end of players
-	playerBoxes[x].clear(colors[playerIndeces[x]]);
-	playerBoxes[x].drawText(cP.name, 5, 15, 'black', '12pt Arial');
-	playerBoxes[x].drawText("wpm: " + cP.wpm, 5, 35, 'black', '12pt Arial');
-    }
+function doKill() {
+    updateHPBars();
+    $('#l0').text("TYPING POWER INADEQUATE - YOU ARE DEAD!")
+    $('#l1').text("(press 'r' to respawn.)");
+    Mousetrap.bind('r', function() {
+	Mousetrap.reset();
+	$('#l1').text("waiting for all players...");
+	sock.send("sync4");
+    });
 }
 
 function cycleLines() {
@@ -778,6 +724,7 @@ function cycleLines() {
 	currentLineText = $('#l1').text();
 	var pairTotalTime = Date.now() - pairTime;
 	var pairWPM = parseInt(Math.floor((60 * pairWords) / (pairTotalTime / 1000)));
+	console.log("Pair wpm: " + pairWPM);
 	sock.send('p,'+pairWPM)
 	pairTime = Date.now();
 	pairWords = 0;
@@ -888,7 +835,7 @@ function triggerMovement(type) {
 
 function handleInput() {
     if (keys[90]) {
-	sock.send("STOP-MONSTERS");
+    	sock.send("STOP-MONSTERS");
     }
     if (inControl) {
 	if (keys[38] && !turning && !walking && legalMove(direction, true)) {

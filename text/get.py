@@ -9,7 +9,7 @@ import random
 
 cgitb.enable()
 
-text_files = ['frankenstein.txt']
+text_files = ['frankenstein.txt', 'alice.txt', 'ulysses.txt', 'modest.txt']
 
 form = cgi.FieldStorage()
 

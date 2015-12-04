@@ -11,10 +11,10 @@ rooms = {}
 
 # globals/finals
 maps = {1:['test3.map'],2:['test1.map','test2.map']}
-enemies = {1:['peppermonster.png','evilpenguin.png'],2:['test3.png']}
-TYPO_DAMAGE = 5
+enemies = {1:['peppermonster.png','evilpenguin.png']}
 ENC_MIN = 5
 ENC_MAX = 10
+PLAYER_MAX_HP = 150
 
 # one in-game room (NOT lobby), and all associated game logic required to syncronize things
 class Room:
@@ -32,6 +32,7 @@ class Room:
         self.in_qte = False
         self.sync_number = 0
         self.map = None
+        self.typo_damage = 1 + len(self.uids)
         
 
         # debug
@@ -41,7 +42,7 @@ class Room:
         self.enc_rate = 0
         self.in_encounter = False
         self.enemy_hp = None
-        self.player_hp = 150
+        self.player_hp = PLAYER_MAX_HP
         self.typos = {}
         for u in uids:
             self.typos[u] = 0
@@ -68,7 +69,7 @@ class Room:
             self.send_to_one(self.controller, "revoke")
             self.controller = None
     def grant_control(self,uid):
-        self.send_to_one(uid, "grant")
+        self.send_to_all("grant," + str(uid))
         self.controller = uid
         
     def request_new_map(self):
@@ -102,11 +103,11 @@ class Room:
 
     def do_encounter(self):
         difficulty = self.map_number + 1
-        enemy_sprite = random.choice(enemies[self.map_number])
-        low_wpm = 10 + (difficulty * 20)
-        high_wpm = 20 + (difficulty * 20)
+        enemy_sprite = random.choice(enemies[min(self.map_number,len(enemies))])
+        low_wpm = 10 + (difficulty * 5)
+        high_wpm = 20 + (difficulty * 5)
         enemy_wpm = random.randrange(low_wpm, high_wpm)
-        self.enemy_hp = high_wpm * 30
+        self.enemy_hp = high_wpm * (3 * len(self.uids))
         self.send_to_all('esp:' + enemy_sprite)
         self.send_to_all('ewpm:' + str(enemy_wpm))
         self.send_to_all('ehp:' + str(self.enemy_hp))
@@ -130,23 +131,29 @@ class Room:
             self.send_to_all_but_one(uid, 'w,' + str(uid) + ',' + payload_info[1])
         elif (payload[0] == 'p'): # pair wpm
             pair_wpm = int(payload.split(',')[1])
-            dmg = pair_wpm - (3 * self.typos[uid])
+            dmg = pair_wpm - self.typos[uid]
             if (dmg <= 0): return
             self.enemy_hp -= dmg
             self.send_to_all('a,' + str(dmg))
-            if (self.enemy_hp <= 0): # debug
+            if (self.enemy_hp <= 0): # victory
+                self.player_hp = PLAYER_MAX_HP
                 self.in_encounter = False
                 self.enc_rate = 0
-                self.do_sync(3, swap_control)
+                self.do_sync(3, self.swap_control)
         elif (payload == 't'): # typo
-            self.player_hp -= TYPO_DAMAGE
+            self.player_hp -= self.typo_damage
             self.typos[uid] += 1
-            self.send_to_all('d,' + str(TYPO_DAMAGE))
-            if (self.player_hp <= 0): # debug
+            self.send_to_all('d,' + str(self.typo_damage))
+            if (self.player_hp <= 0): # dead
                 self.in_encounter = False
-                self.enc_rate = 0
-                self.do_sync(3, swap_control)
+                self.do_sync(4, self.do_respawn)
 
+    def do_respawn(self):
+        self.enc_rate = 0
+        self.player_hp = PLAYER_MAX_HP
+        self.send_to_all("kill")
+        self.do_sync(3, self.swap_control)
+                
     def on_message(self,uid,payload):
         if (payload == 'STOP-MONSTERS'): # debug
             self.monsters = False

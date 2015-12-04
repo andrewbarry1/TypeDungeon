@@ -12,6 +12,7 @@
 
 body {
     margin: 0;
+    overflow: hidden;
 }
 p {
     font-family: 'apple_regular';
@@ -19,13 +20,14 @@ p {
 #typeText {
     position: absolute;
     left: 10%;
-    top: 5%;
+    top: 2%;
     width: 80%;
-    z-index: 0;
+    z-index: 2;
     font-family: 'apple_regular';
     font-size: 12pt;
     color: white;
     background-color: black;
+    padding: 3px 3px 3px 3px;
 }
 #loadText {
     position: absolute;
@@ -39,25 +41,56 @@ p {
     background-color: black;
     z-index: 2;
 }
-canvas {
+.mainDisplay {
     position: absolute;
-    top:50%;
+    top:53%;
     left:50%;
     margin-top:-250;
     margin-left:-250;
     z-index:1;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-optimiza-contrast
+    image-rendering: -webkit-optimize-contrast
+}
+#hpBars {
+    position: absolute;
+    top: 53%;
+    right:10%;
+    margin-top:-187;
+    z-index:3;
+    padding: 3px 3px 3px 3px;
+    border: 1px solid red;
+    background-color:black;
 }
 #mainBorder {
     position: absolute;
-    top:50%;
+    top:53%;
     left:50%;
     margin-top:-350;
     margin-left:-350;
     z-index:0;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-optimiza-contrast
+    image-rendering: -webkit-optimize-contrast
+}
+#lobby {
+    position: absolute;
+    top:30%;
+    left:5%;
+    border: 1px solid red;
+    color: white;
+    background-color: black;
+    z-index: 3;
+}
+#lobby0 {
+    color: green;
+}
+#lobby1 {
+    color: red;
+}
+#lobby2 {
+    color: cyan;
+}
+#lobby3 {
+    color: yellow;
 }
