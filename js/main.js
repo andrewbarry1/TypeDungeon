@@ -141,7 +141,11 @@ function loadGame() {
     barctx = document.getElementById("hpBars").getContext("2d");
     $('#l0').text("TYPEDUNGEON name not final");
     $('#l1').text("by Andrew Barry");
-    window.setTimeout(function() { $('#typeText').fadeOut(2000); }, 3000);
+    window.setTimeout(function() {
+	if ($('#l1').text() == 'by Andrew Barry') {
+	    $('#typeText').fadeOut(2000);
+	}
+    }, 3000);
     var searchCheck = location.search;
     if (searchCheck.split("=").length == 1) {
 	loadState(0);
@@ -549,9 +553,10 @@ function playingOnMessage(message) {
     }
     
     else if (message.startsWith("q,")) { // qte letter
+	$('#typeText').stop();
 	$('#l1').text('');
 	$('#l0').text("FOR CONTROL: " + message.split(",")[1].toUpperCase());
-	$('#typeText').show();
+	$('#typeText').fadeTo(0,1);
 	Mousetrap.setQTE(message.split(",")[1]);
     }
     else if (message.startsWith("grant")) {
@@ -584,29 +589,7 @@ function playingOnMessage(message) {
 	THREE.ImageUtils.loadTexture('assets/' + message.split(':')[1], undefined, function(esp) {
 	    enemySprite = esp;
 	    typeLineCursor = 0;
-	    $.ajax({url:'text/get.py', method:'POST', data: {"l":charactersPerLine, "n":typeLineCursor}, success: function(r) {
-		var tt = r.split("\n");
-		typeSrc = tt[0];
-		typeText = [];
-		typeCursor = 0;
-		pairWords = 0;
-		playerHP = oPHP;
-		lineOnScreen = 0;
-		pairTime = Date.now();
-		correctCharacters = 0;
-		encounterStartTime = Date.now();
-		window.setTimeout(calculateWPM,1000);
-		for (var x = 1; x < 11; x++) {
-		    typeText[x-1] = tt[x].trim();
-		}
-		$('#l0').html(typeText[0]);
-		$('#l1').html(typeText[1]);
-		$('#'+typeLineCursor+'c0').css('color','yellow');
-		$('#'+typeLineCursor+'c0').css('text-decoration','underline');
-		Mousetrap.bind($('#l0').text()[typeCursor], encounterHandleInput);
-		currentLineText = $('#l0').text();
-		sock.send('sync2');
-	    }});
+	    flashColor("yellow", 100, 3, startEncounter);
 	}, null);
     }
     else if (message.startsWith('ewpm:')) {
@@ -619,6 +602,31 @@ function playingOnMessage(message) {
     else if (message == 'enc') {
 	loadState(5);
     }    
+}
+function startEncounter() {
+    $.ajax({url:'text/get.py', method:'POST', data: {"l":charactersPerLine, "n":typeLineCursor}, success: function(r) {
+	var tt = r.split("\n");
+	typeSrc = tt[0];
+	typeText = [];
+	typeCursor = 0;
+	pairWords = 0;
+	playerHP = oPHP;
+	lineOnScreen = 0;
+	pairTime = Date.now();
+	correctCharacters = 0;
+	encounterStartTime = Date.now();
+	window.setTimeout(calculateWPM,1000);
+	for (var x = 1; x < 11; x++) {
+	    typeText[x-1] = tt[x].trim();
+	}
+	$('#l0').html(typeText[0]);
+	$('#l1').html(typeText[1]);
+	$('#'+typeLineCursor+'c0').css('color','yellow');
+	$('#'+typeLineCursor+'c0').css('text-decoration','underline');
+	Mousetrap.bind($('#l0').text()[typeCursor], encounterHandleInput);
+	currentLineText = $('#l0').text();
+	sock.send('sync2');
+    }});
 }
 
 function calculateWPM() {
@@ -643,6 +651,7 @@ function encounterOnMessage(message) {
     else if (message.startsWith("a")) { // enemy takes damage
 	enemyHP -= parseInt(message.split(",")[1]);
 	if (enemyHP <= 0) { // you win
+	    flashColor("green", 100, 3, function() {});
 	    loadState(4);
 	    sock.send("sync3");
 	}
@@ -653,7 +662,8 @@ function encounterOnMessage(message) {
     else if (message.startsWith("d")) { // player takes damage
 	playerHP -= parseInt(message.split(",")[1]);
 	if (playerHP <= 0) { // you died
-	    doKill();
+	    updateHPBars();
+	    flashColor("red", 100, 3, doKill);
 	}
 	else {
 	    updateHPBars();
@@ -698,7 +708,6 @@ function updateWPMs() {
 }
 
 function doKill() {
-    updateHPBars();
     $('#l0').text("TYPING POWER INADEQUATE - YOU ARE DEAD!")
     $('#l1').text("(press 'r' to respawn.)");
     Mousetrap.bind('r', function() {
@@ -735,6 +744,30 @@ function cycleLines() {
 	    }
 	}});
     }
+}
+
+function flashColor(color, colorDuration, times, completion) {
+    console.log(completion);
+    flashInner(color, colorDuration, 0, times-1, completion);
+}
+function flashInner(color, colorDuration, x, total, completion) {
+    $('body').animate(
+	{ backgroundColor: color },
+	colorDuration,
+	function() {
+	    $('body').animate(
+		{ backgroundColor: "white" },
+		colorDuration,
+		function() {
+		    if (x < total) {
+			flashInner(color, colorDuration, ++x, total, completion);
+		    }
+		    else {
+			completion();
+		    }
+		}
+	    );
+	});
 }
 
 function render() {
