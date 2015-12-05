@@ -1,4 +1,4 @@
-import sys, time, random
+import sys, time, random, math
 from twisted.python import log
 from twisted.internet import reactor
 from autobahn.twisted.websocket import WebSocketServerProtocol
@@ -102,14 +102,11 @@ class Room:
         self.send_to_all('sync' + str(sn))
 
     def do_encounter(self):
-        difficulty = self.map_number + 1
+        difficulty = self.map_number + math.floor(1.1 * len(self.uids))
         enemy_sprite = random.choice(enemies[min(self.map_number,len(enemies))])
-        low_wpm = 10 + (difficulty * 5)
-        high_wpm = 20 + (difficulty * 5)
-        enemy_wpm = random.randrange(low_wpm, high_wpm)
-        self.enemy_hp = high_wpm * (3 * len(self.uids))
+        self.enemy_hp = (difficulty * 15) * len(self.uids)
         self.send_to_all('esp:' + enemy_sprite)
-        self.send_to_all('ewpm:' + str(enemy_wpm))
+        self.send_to_all('ewpm:10') # doesn't matter right now
         self.send_to_all('ehp:' + str(self.enemy_hp))
         self.do_sync(2, self.start_encounter) # sync allows for img/text loading
 

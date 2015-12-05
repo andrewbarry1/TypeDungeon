@@ -26,6 +26,7 @@ Modifications made by me (Andrew Barry) - simpler integration with TypeDungeon, 
 */
 
 
+
 (function(window, document, undefined) {
 
     /**
@@ -434,6 +435,8 @@ Modifications made by me (Andrew Barry) - simpler integration with TypeDungeon, 
             return new Mousetrap(targetElement);
         }
 
+	self._qte = null;
+
         /**
          * element to attach key events to
          *
@@ -731,6 +734,9 @@ Modifications made by me (Andrew Barry) - simpler integration with TypeDungeon, 
             }
 
             self.handleKey(character, _eventModifiers(e), e);
+	    //	    if (Mousetrap.charFromEvent(e) == "'" || Mousetrap.charFromEvent(e) == '\\') {
+	    //		e.preventDefault();
+	    //	    }
         }
 
         /**
@@ -961,11 +967,35 @@ Modifications made by me (Andrew Barry) - simpler integration with TypeDungeon, 
      *
      * @returns void
      */
+    
+    Mousetrap.prototype.setQTE = function(l) {
+	var self = this;
+	self._qte = l;
+	if (self._qte == null) return;
+	Mousetrap.bind(self._qte, function() {
+	    Mousetrap.setQTE(null);
+	    sock.send("q");
+	    Mousetrap.reset();
+	    $('#l0').text("");
+	    $('#typeText').hide();
+	});
+    };
+
+
     Mousetrap.prototype.reset = function() {
         var self = this;
         self._callbacks = {};
         self._directMap = {};
-        return self;
+	if (self._qte != null) {
+	    Mousetrap.bind(self._qte, function() {
+		Mousetrap.setQTE(null);
+		sock.send("q");
+		Mousetrap.reset();
+		$('#l0').text("");
+		$('#typeText').hide();
+	    });
+	}
+	return self;
     };
 
     /**

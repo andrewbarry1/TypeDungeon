@@ -136,10 +136,12 @@ function loadGame() {
     renderer.domElement.className += " mainDisplay";
     document.body.appendChild(renderer.domElement);
     $('#loadText').hide();
-    $('#typeText').hide();
     $('#lobby').hide();
     $('#hpBars').hide();
     barctx = document.getElementById("hpBars").getContext("2d");
+    $('#l0').text("TYPEDUNGEON name not final");
+    $('#l1').text("by Andrew Barry");
+    window.setTimeout(function() { $('#typeText').fadeOut(2000); }, 3000);
     var searchCheck = location.search;
     if (searchCheck.split("=").length == 1) {
 	loadState(0);
@@ -550,13 +552,7 @@ function playingOnMessage(message) {
 	$('#l1').text('');
 	$('#l0').text("FOR CONTROL: " + message.split(",")[1].toUpperCase());
 	$('#typeText').show();
-	Mousetrap.bind(message.split(",")[1], function() {
-	    sock.send("q");
-	    Mousetrap.reset();
-	    $('#l0').text("");
-	    $('#typeText').hide();
-	});
-	    
+	Mousetrap.setQTE(message.split(",")[1]);
     }
     else if (message.startsWith("grant")) {
 	var g_uid = message.split(',')[1];
@@ -905,6 +901,7 @@ function encounterHandleInput() {
     else {
 	Mousetrap.bind($('#l'+lineOnScreen).text()[typeCursor], encounterHandleInput);
     }
+    return false;
 }
 
 // position "Animation" updating
