@@ -11,7 +11,6 @@ import time
 cgitb.enable()
 
 text_files = ['frankenstein.txt', 'alice.txt', 'ulysses.txt', 'modest.txt', 'traps.txt', 'wood.txt', 'scarlet.txt', 'spacedoor.txt']
-text_files = ['ulysses.txt']
 
 form = cgi.FieldStorage()
 
