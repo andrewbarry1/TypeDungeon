@@ -625,8 +625,10 @@ Modifications made by me (Andrew Barry) - simpler integration with TypeDungeon, 
          */
         self._handleKey = function(character, modifiers, e) {
             var callbacks = _getMatches(character, modifiers, e);
-	    if (callbacks.length == 0 && (e.type == 'keypress' || (e.type == 'keydown' && character == 'space'))&& character != 'shift' && character != ' ') {
-		doTypo();
+	    if (callbacks.length == 0 && inEncounter && (e.type == 'keypress' || (e.type == 'keydown' && character == 'space'))&& character != 'shift' && character != ' ') {
+		doTypo(e);
+		_preventDefault(e);
+		_stopPropagation(e);
 	    }
             var i;
             var doNotReset = {};
@@ -734,9 +736,6 @@ Modifications made by me (Andrew Barry) - simpler integration with TypeDungeon, 
             }
 
             self.handleKey(character, _eventModifiers(e), e);
-	    //	    if (Mousetrap.charFromEvent(e) == "'" || Mousetrap.charFromEvent(e) == '\\') {
-	    //		e.preventDefault();
-	    //	    }
         }
 
         /**

@@ -62,7 +62,7 @@ var encounterStartTime;
 var elapsedTime = 0;
 var pairTime = 0;
 var pairWords = 0;
-
+var didTypo = false;
 
 
 // MISC VARIABLES
@@ -246,15 +246,9 @@ function loadState(stateNumber) {
 	bufferedMap = [];
 	playerHP = 150;
 	currentMap = [];
-	inControl = false;
 	$('#loadText').fadeIn(400, function() { window.setTimeout(function() { sock.send("prepm"); }, 600); });
-
-	
-	
 	var loadingDT = new THREEx.DynamicTexture(75,75);
 	loadingDT.clear('black');
-	
-	//loadingDT.drawText("Moving to Next Floor...", undefined, 35, 'white', '12pt Arial');
 	var loadingMat = new THREE.SpriteMaterial({map: loadingDT.texture});
 	var loadingSp = new THREE.Sprite(loadingMat);
 	spritesToDraw[0] = loadingSp;
@@ -263,8 +257,6 @@ function loadState(stateNumber) {
 	loadingSp.scale.set(sW,sH,1);
 	hud.add(loadingSp);
 	loadingSp.position.set(0,0,1);
-	
-
     }
     else if (gameState == 5) { // loading encounter
 	inEncounter = true;
@@ -329,6 +321,7 @@ function onMessage(m) {
 	var my_info = message.split(",");
 	var my_id = my_info[1];
 	var yourName = prompt("What is your name?");
+	if (yourName == '' || yourName == null) yourName = "Default";
 	sock.send("name," + yourName);
 	yourPlayer = new Player(my_id,yourName);
 	var searchCheck = location.search;
@@ -512,13 +505,13 @@ function createMap() {
     typeSrc = "";
     typeCursor = 0;
     $('#loadText').hide();
+    console.log("done loading map");
     loadState(4);
     sock.send('sync3');
 }
 
 // onMessage for gameplay
 function playingOnMessage(message) {
-    console.log(message);
     if (message == 'mf') {
 	if (walking || turning) {
 	    stepQueue.enqueue('mf');
@@ -564,8 +557,10 @@ function playingOnMessage(message) {
 	if (g_uid == yourPlayer.id) {
 	    inControl = true;
 	}
+	$('#typeText').stop();
 	$('#l0').text(players[playerIDs[parseInt(g_uid)]].name + " has control!");
-	$('#typeText').show();
+	$('#l1').text('');
+	$('#typeText').fadeTo(0,1);
 	window.setTimeout(function() { if ($('#l0').text().endsWith(" has control!")) { $('#typeText').hide(); }}, 2500);
     }
     else if (message == 'revoke') {
@@ -642,7 +637,6 @@ function calculateWPM() {
 }
 
 function encounterOnMessage(message) {
-    console.log(message);
     if (message.startsWith("w")) { // wpm report from player
 	var wId = message.split(",")[1];
 	var wWPM = parseInt(message.split(",")[2]);
@@ -747,7 +741,6 @@ function cycleLines() {
 }
 
 function flashColor(color, colorDuration, times, completion) {
-    console.log(completion);
     flashInner(color, colorDuration, 0, times-1, completion);
 }
 function flashInner(color, colorDuration, x, total, completion) {
@@ -906,10 +899,12 @@ function handleInput() {
     }
 }
 
-function doTypo() {
-    if (!inEncounter) return;
+function doTypo(e) {
+    if (!inEncounter || didTypo) return;
+    if (['up','down','left','right'].indexOf(Mousetrap.charFromEvent(e)) != -1) return;
     $('#'+typeLineCursor+'c'+typeCursor).css("color","red");
     sock.send('t');
+    didTypo = true;
 }
 
 function encounterHandleInput() {
@@ -934,6 +929,7 @@ function encounterHandleInput() {
     else {
 	Mousetrap.bind($('#l'+lineOnScreen).text()[typeCursor], encounterHandleInput);
     }
+    didTypo = false;
     return false;
 }
 

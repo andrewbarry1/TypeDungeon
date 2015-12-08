@@ -48,9 +48,10 @@ p {
     margin-top:-250;
     margin-left:-250;
     z-index:1;
+
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-optimize-contrast
+    image-rendering: optimize-contrast;
 }
 #hpBars {
     position: absolute;

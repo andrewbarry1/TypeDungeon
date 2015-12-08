@@ -92,7 +92,13 @@ class Room:
         for line in self.map[2:]:
             self.send_to_all(line)
         self.encounter_rate = 0
-        self.do_sync(3,self.swap_control)
+        if len(self.uids) > 1:
+            self.do_sync(3,self.swap_control)
+        else:
+            self.do_sync(3, self.single_grant)
+
+    def single_grant(self):
+        self.grant_control(self.uids[0])
 
     def do_sync(self, sn, func):
         self.sync_func = func
@@ -136,7 +142,10 @@ class Room:
                 self.player_hp = PLAYER_MAX_HP
                 self.in_encounter = False
                 self.enc_rate = 0
-                self.do_sync(3, self.swap_control)
+                if len(self.uids) > 1:
+                    self.do_sync(3, self.swap_control)
+                else:
+                    self.do_sync(3, self.single_grant)
         elif (payload == 't'): # typo
             self.player_hp -= self.typo_damage
             self.typos[uid] += 1
@@ -149,7 +158,10 @@ class Room:
         self.enc_rate = 0
         self.player_hp = PLAYER_MAX_HP
         self.send_to_all("kill")
-        self.do_sync(3, self.swap_control)
+        if len(self.uids) > 1:
+            self.do_sync(3, self.swap_control)
+        else:
+            self.do_sync(3, self.single_grant)
                 
     def on_message(self,uid,payload):
         if (payload == 'STOP-MONSTERS'): # debug
