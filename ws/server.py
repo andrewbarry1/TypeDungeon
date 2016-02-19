@@ -10,7 +10,7 @@ room_occupants = {}
 rooms = {}
 
 # globals/finals
-maps = {1:['test3.map'],2:['test1.map','test2.map']}
+maps = {1:['house.map'],2:['test3.map'],3:['test1.map','test2.map']}
 enemies = {1:['peppermonster.png','evilpenguin.png']}
 ENC_MIN = 5
 ENC_MAX = 10
@@ -32,7 +32,7 @@ class Room:
         self.in_qte = False
         self.sync_number = 0
         self.map = None
-        self.typo_damage = 1 + len(self.uids)
+        self.typo_damage = len(self.uids) * 3
         
 
         # debug
@@ -58,6 +58,10 @@ class Room:
     def send_to_all(self,message):
         for u in self.uids:
             self.clients[u].sendMessage(message)
+
+    def onClose(self, quid): # user quid has quit
+        self.uids.remove(quid)
+        self.typo_damage = len(self.uids) * 3
 
     def swap_control(self): # start qte control swap
         self.revoke_control()
@@ -108,9 +112,9 @@ class Room:
         self.send_to_all('sync' + str(sn))
 
     def do_encounter(self):
-        difficulty = self.map_number + math.floor(1.1 * len(self.uids))
+        difficulty = self.map_number + (1.2 * len(self.uids))
         enemy_sprite = random.choice(enemies[min(self.map_number,len(enemies))])
-        self.enemy_hp = (difficulty * 15) * len(self.uids)
+        self.enemy_hp = math.floor(difficulty * 30) * len(self.uids)
         self.send_to_all('esp:' + enemy_sprite)
         self.send_to_all('ewpm:10') # doesn't matter right now
         self.send_to_all('ehp:' + str(self.enemy_hp))
@@ -132,9 +136,9 @@ class Room:
             if (int(payload_info[1]) >= 250): # basic anti-cheat. Nobody types 250wpm.
                 return
             self.send_to_all_but_one(uid, 'w,' + str(uid) + ',' + payload_info[1])
-        elif (payload[0] == 'p'): # pair wpm
+        elif (payload[0] == 'p'): # pair wpm (note - no longer a pair)
             pair_wpm = int(payload.split(',')[1])
-            dmg = pair_wpm - self.typos[uid]
+            dmg = int((pair_wpm - self.typos[uid]) / 2)
             if (dmg <= 0): return
             self.enemy_hp -= dmg
             self.send_to_all('a,' + str(dmg))
@@ -251,6 +255,8 @@ class MyServerProtocol(WebSocketServerProtocol):
     def onClose(self, wasClean, code, reason):
         if (self.room is None): # no crashes in main menu
             return
+        if self.playing: # ingame - use Room's onClose
+            self.Room.onClose(self.uid)
         ids.remove(self.uid)
         del clients[self.uid]
         room_occupants[self.room][room_occupants[self.room].index(self.uid)] = None

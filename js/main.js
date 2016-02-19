@@ -13,9 +13,9 @@ var light = new THREE.AmbientLight( 0xffffff ); // lighting (obj/mtl)
 scene.add(light);
 var loader = new THREE.OBJMTLLoader();
 var renderer = new THREE.WebGLRenderer();
-var sock = new WebSocket("ws://game2.andrewbarry.me/ws");
+var sock = new WebSocket("ws://type.dungeon.online/ws");
 var domEvents = new THREEx.DomEvents(camera, renderer.domElement);
-var charactersPerLine = Math.floor((0.8 * window.innerWidth) / 16);
+var charactersPerLine = Math.floor(800 / 16);
 
 
 // PLAYERS INFO
@@ -53,6 +53,7 @@ var typeText = [];
 var typeSrc;
 var typeCursor = 0;
 var typeLineCursor = 0;
+var tlcReset = -1;
 var lineOnScreen = 0;
 var currentLineText;
 var playerHP;
@@ -60,8 +61,8 @@ var barctx;
 var correctCharacters = 0;
 var encounterStartTime;
 var elapsedTime = 0;
-var pairTime = 0;
-var pairWords = 0;
+var lineTime = 0;
+var lineWords = 0;
 var didTypo = false;
 
 
@@ -139,8 +140,8 @@ function loadGame() {
     $('#lobby').hide();
     $('#hpBars').hide();
     barctx = document.getElementById("hpBars").getContext("2d");
-    $('#l0').text("TYPEDUNGEON name not final");
-    $('#l1').text("by Andrew Barry");
+    $('#l0').text("TYPEDUNGEON");
+    $('#l1').text("A work in progress");
     window.setTimeout(function() {
 	if ($('#l1').text() == 'by Andrew Barry') {
 	    $('#typeText').fadeOut(2000);
@@ -181,7 +182,7 @@ function loadState(stateNumber) {
     }
     spritesToDraw = [];
     gameState = stateNumber;
-    if (gameState == 0) {
+    if (gameState == 0) { // main menu
 	dynamicTextures[0] = new THREEx.DynamicTexture(64,64);
 	if (sock.readyState == 0) {
 	    dynamicTextures[0].clear('red');
@@ -321,7 +322,7 @@ function onMessage(m) {
 	var my_info = message.split(",");
 	var my_id = my_info[1];
 	var yourName = prompt("What is your name?");
-	if (yourName == '' || yourName == null) yourName = "Default";
+	if (yourName == '' || yourName == null) yourName = "Anonymous Typist";
 	sock.send("name," + yourName);
 	yourPlayer = new Player(my_id,yourName);
 	var searchCheck = location.search;
@@ -357,17 +358,6 @@ function onMessage(m) {
 	}
 	loadState(1);
     }
-    else if (message.startsWith("quit,")) { // player quit the room
-	var qid = parseInt(message.split(",")[1]);
-	for (var x = 0; x < 4; x++) {
-	    if (players[x].id == qid) {
-		players[x] = undefined;
-		if (gameState == 1) {
-		    $('#lobby'+x).text('Waiting...');
-		}
-	    }
-	}
-    }
     else if (message.startsWith("newr,")) { // new room created - here's the id
 	room_id = message.split(",")[1];
 	loadState(1);
@@ -387,6 +377,21 @@ function onMessage(m) {
     else if (message == 'noroom') {
 	alert("Room not found. Create your own!");
 	loadState(0);
+    }
+
+    if (message.startsWith("quit,")) { // player quit the room
+	var qid = parseInt(message.split(",")[1]);
+	for (var x = 0; x < 4; x++) {
+	    if (players[x] != undefined && players[x].id == qid) {
+		players[x] = undefined;
+		if (gameState == 1) {
+		    $('#lobby'+x).text('Waiting...');
+		}
+		else if (gameState > 1) {
+		    updateWPMs();
+		}
+	    }
+	}
     }
     
 }
@@ -475,7 +480,7 @@ function createMap() {
 		}
 		else if (item == 'c') {
 		    objectsToDraw[oi] = new THREE.Mesh(floorGeom, mat);
-		    objectsToDraw[oi].position.set(loadSpaceX, .5, loadSpaceY);
+		    objectsToDraw[oi].position.set(loadSpaceX, .501, loadSpaceY);
 		}
 		else if (item == 'd') {
 		    objectsToDraw[oi] = new THREE.Mesh(wallGeomHoriz, mat);
@@ -601,16 +606,18 @@ function playingOnMessage(message) {
 function startEncounter() {
     $.ajax({url:'text/get.py', method:'POST', data: {"l":charactersPerLine, "n":typeLineCursor}, success: function(r) {
 	var tt = r.split("\n");
+	console.log(tt);
 	typeSrc = tt[0];
 	typeText = [];
 	typeCursor = 0;
-	pairWords = 0;
+	tlcReset = -1;
+	lineWords = 0;
 	playerHP = oPHP;
 	lineOnScreen = 0;
-	pairTime = Date.now();
+	lineTime = Date.now();
 	correctCharacters = 0;
 	encounterStartTime = Date.now();
-	window.setTimeout(calculateWPM,1000);
+	window.setTimeout(calculateWPM,2000);
 	for (var x = 1; x < 11; x++) {
 	    typeText[x-1] = tt[x].trim();
 	}
@@ -625,13 +632,13 @@ function startEncounter() {
 }
 
 function calculateWPM() {
-
+    if (!inEncounter) return;
     elapsedTime = (Date.now() - encounterStartTime)/1000;
-    yourPlayer.wpm = Math.floor((12 * correctCharacters) / elapsedTime);
+    yourPlayer.wpm = Math.floor((30 * correctCharacters) / 6); /* / elapsedTime); */
     sock.send("w," + yourPlayer.wpm);
-    
+    correctCharacters = 0;
     if (inEncounter) {
-	window.setTimeout(calculateWPM,1000);
+	window.setTimeout(calculateWPM,2000);
     }
     updateWPMs();
 }
@@ -698,6 +705,9 @@ function updateWPMs() {
 	if (players[x] != null) {
 	    $('#lobby'+x).text(players[x].name + " - " + players[x].wpm + "wpm");
 	}
+	else {
+	    $('#lobby'+x).text('');
+	}
     }
 }
 
@@ -713,6 +723,9 @@ function doKill() {
 
 function cycleLines() {
     typeCursor = 0;
+    tlcReset--;
+    if (tlcReset == 0) typeLineCursor = 0;
+
     if (lineOnScreen == 0) { // finished writing first line
 	$('#l0').html(typeText[typeLineCursor+2]);
 	lineOnScreen++;
@@ -721,18 +734,22 @@ function cycleLines() {
     else { // finished writing second line - update & send Pair WPM
 	$('#l1').html(typeText[typeLineCursor+2]);
 	currentLineText = $('#l1').text();
-	var pairTotalTime = Date.now() - pairTime;
-	var pairWPM = parseInt(Math.floor((60 * pairWords) / (pairTotalTime / 1000)));
-	console.log("Pair wpm: " + pairWPM);
-	sock.send('p,'+pairWPM)
-	pairTime = Date.now();
-	pairWords = 0;
 	lineOnScreen = 0;
     }
+    var lineTotalTime = Date.now() - lineTime;
+    var lineWPM = parseInt(Math.floor((60 * lineWords) / (lineTotalTime / 1000)));
+    console.log("Line wpm: " + lineWPM);
+    sock.send('p,' + lineWPM);
+    lineTime = Date.now();
+    lineWords = 0;
     typeLineCursor++;
     if (typeLineCursor + 3 == typeText.length) { // getting close to the end of our text - fetch more
 	$.ajax({url:'text/get.py', method:'POST', data: {"src": typeSrc, "l":charactersPerLine, "n":typeLineCursor+3}, success: function(r) {
 	    var nwords = r.split("\n");
+	    if (nwords[0] != typeSrc) {
+		typeSrc = nwords[0];
+		tlcReset = 4;
+	    }
 	    for (var x = 1; x < nwords.length; x++) {
 		typeText.push(nwords[x]);
 	    }
@@ -911,7 +928,7 @@ function encounterHandleInput() {
     $('#'+typeLineCursor+'c'+typeCursor).css("color","green");
     $('#'+typeLineCursor+'c'+typeCursor).css('text-decoration','none');
     if ($('#'+typeLineCursor+'c'+typeCursor).text() == ' ') { // finished typing a word
-	pairWords++;
+	lineWords++;
     }
     typeCursor++;
     correctCharacters++;

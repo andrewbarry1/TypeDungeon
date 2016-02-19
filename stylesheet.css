@@ -19,14 +19,19 @@ p {
 }
 #typeText {
     position: absolute;
-    left: 10%;
     top: 2%;
-    width: 80%;
+    left: 50%;
+    width: 800px;
+    margin-left: -400px;
+    /* height: 60%; */
     z-index: 2;
     font-family: 'apple_regular';
     font-size: 12pt;
     color: white;
     background-color: black;
+    /*    background-image: url('assets/scroll.jpg');
+    background-repeat: no-repeat;
+    background-position: center; */
     padding: 3px 3px 3px 3px;
 }
 #loadText {
@@ -72,7 +77,6 @@ p {
     z-index:0;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-optimize-contrast
 }
 #lobby {
     position: absolute;

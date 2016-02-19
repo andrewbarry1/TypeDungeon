@@ -138,10 +138,10 @@ function updateMap() {
 	return;
     }
 
+    var walls = document.getElementById("wallType").options;
     mapText = "WN," + (walls.length-1) + "\n";
     mapText += "MN," + placements.length + "\n";
     mapText += "S," + startX + "," + startY + "\nF," + finishX + "," + finishY + "\n";
-    var walls = document.getElementById("wallType").options;
 
     for (var x = 0; x < placements.length; x++) {
 	for (var y = 0; y < placements[x].length; y++) {
