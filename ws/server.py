@@ -89,11 +89,12 @@ class Room:
         mapfile.close()
         self.send_to_all(self.map[0])
         self.send_to_all(self.map[1])
+        self.send_to_all(self.map[2])
         self.do_sync(0,self.do_start_map)
 
     def do_start_map(self):
         self.encounter_rate = 0
-        for line in self.map[2:]:
+        for line in self.map[3:]:
             self.send_to_all(line)
         self.encounter_rate = 0
         if len(self.uids) > 1:

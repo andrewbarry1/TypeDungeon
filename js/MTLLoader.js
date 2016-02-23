@@ -82,7 +82,7 @@ THREE.MTLLoader.prototype = {
 
 				// New material
 
-				info = { name: value, minFilter: THREE.MinFilter, magFilter: THREE.MagFilter };
+				info = { name: value, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter };
 				materialsInfo[ value ] = info;
 
 			} else if ( info ) {
@@ -389,7 +389,7 @@ THREE.MTLLoader.MaterialCreator.prototype = {
 
 		}
 
-		this.materials[ materialName ] = new THREE.MeshPhongMaterial( params );
+		this.materials[ materialName ] = new THREE.MeshBasicMaterial( params );
 		return this.materials[ materialName ];
 
 	},

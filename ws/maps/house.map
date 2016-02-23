@@ -1,16 +1,17 @@
 WN,6
 MN,10
+ON,1
 S,1,1
 F,6,5
 fg,fg,fg,fg,fg,fg,fg,fg,fg,fg
 fg,fg,fg,fg,fg,fg,fg,fg,fg,fg
 fg,fg,fg,fg,fg,fg,fg,fg,fg,fg
 fg,fg,fg,fg,fg,fg,fg,fg,fg,fg
-fg,fg,fg,fg,weaefrcr,aefrcr,aefrcr,aesefrcr,fg,fg
+fg,fg,fg,fg,weaefrcroc1,aefrcr,aefrcr,aesefrcroc1,fg,fg
 fg,fg,fg,fg,wefrcr,frcr,frcr,sefrcr,fg,fg
 fg,fg,fg,fg,wefrcr,frcr,frcr,frcr,fg,fg
 fg,fg,fg,fg,wefrcr,frcr,frcr,sefrcr,fg,fg
-fg,fg,fg,fg,wedefrcr,defrcr,defrcr,desefrcr,fg,fg
+fg,fg,fg,fg,wedefrcroc1,defrcr,defrcr,desefrcroc1,fg,fg
 fg,fg,fg,fg,fg,fg,fg,fg,fg,fg
 WP,p,pipe
 WP,r,rock
@@ -18,3 +19,4 @@ WP,e,redrock
 WP,t,test
 WP,u,uglyfloor
 WP,g,grassfloor
+OP,c,column_h

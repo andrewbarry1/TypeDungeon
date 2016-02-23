@@ -40,7 +40,9 @@ THREE.OBJMTLLoader.prototype = {
 						if ( object.material.name ) {
 
 						    var material = materialsCreator.create( object.material.name );
-
+						    material.map.minFilter = THREE.NearestFilter;
+						    material.map.magFilter = THREE.NearestFilter;
+						    console.log(material.map);
 							if ( material ) object.material = material;
 
 						}
@@ -113,7 +115,7 @@ THREE.OBJMTLLoader.prototype = {
 
 			if ( materialName !== undefined ) {
 
-				material = new THREE.MeshLambertMaterial();
+				material = new THREE.MeshBasicMaterial();
 				material.name = materialName;
 
 				mesh.material = material;
@@ -126,7 +128,7 @@ THREE.OBJMTLLoader.prototype = {
 		var object = group;
 
 		var geometry = new THREE.Geometry();
-		var material = new THREE.MeshLambertMaterial();
+		var material = new THREE.MeshBasicMaterial();
 		var mesh = new THREE.Mesh( geometry, material );
 
 		var vertices = [];

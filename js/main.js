@@ -4,13 +4,9 @@ window.onload = loadGame;
 
 // IMPORTANT GRAPHICS VARIABLES
 var scene = new THREE.Scene();
-//var camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
-//var hudCamera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 1, 10);
 var camera = new THREE.PerspectiveCamera(100, 1, 0.1, 1000);
 var hudCamera = new THREE.OrthographicCamera(125 / -2, 125 / 2, 125 / 2, 125 / -2, 1, 10);
 var hud = new THREE.Scene();
-var light = new THREE.AmbientLight( 0xffffff ); // lighting (obj/mtl)
-scene.add(light);
 var loader = new THREE.OBJMTLLoader();
 var renderer = new THREE.WebGLRenderer();
 var sock = new WebSocket("ws://type.dungeon.online/ws");
@@ -30,6 +26,7 @@ var objectsToDraw = [];
 var spritesToDraw = [];
 var dynamicTextures = [];
 var textures = {};
+var objects = {};
 
 // INPUT & MOVEMENT
 var keys = [];
@@ -41,6 +38,7 @@ var walkingCounter = 0;
 var stepQueue;
 var inControl = false;
 var startPos;
+var solidSpaces = [];
 
 // ENCOUNTER VARIABLES
 var inEncounter = false;
@@ -79,6 +77,8 @@ var numTotalWalls = 0;
 var numWalls = 0;
 var numTotalMapLines = 0;
 var numTotalWalls = 0;
+var numObjects = 0;
+var numTotalObjects = 0;
 var bufferedMap = [];
 
 // GLOBALLY USEFUL ASSETS
@@ -171,7 +171,6 @@ function loadState(stateNumber) {
 	for (var x = 0; x < objectsToDraw.length; x++) {
 	    if (objectsToDraw[x] != null) {
 		scene.remove(objectsToDraw[x]);
-//		domEvents.removeEventListener(objectsToDraw[x], 'click', function() {}, false);
 	    }
 	}
 	objectsToDraw = [];
@@ -316,6 +315,7 @@ function onMessage(m) {
 	    }
 	}
 	bufferedMap = [];
+	solidSpaces = [];
 	loadState(3);
     }
     else if (message.startsWith("you,")) { // letting you know your credentials
@@ -425,14 +425,21 @@ function loadingOnMessage(message) {
     else if (message.startsWith("WN")) { // number of wall paths
 	numTotalWalls = parseInt(message.split(',')[1]);
 	numWalls = 0;
-	if (numTotalMapLines != 0) {
+	if (numTotalMapLines != 0 && numTotalObjects != -1) {
 	    sock.send('sync0');
 	}
     }
     else if (message.startsWith("MN")) { // number of lines to receive for the map
 	numTotalMapLines = parseInt(message.split(',')[1]);
 	numMapLines = 0;
-	if (numTotalWalls != 0) {
+	if (numTotalWalls != 0 && numTotalObjects != -1) {
+	    sock.send('sync0');
+	}
+    }
+    else if (message.startsWith("ON")) { // number of objects
+	numTotalObjects = parseInt(message.split(',')[1]);
+	numObjects = 0;
+	if (numTotalWalls != 0 && numTotalMapLines != 0) {
 	    sock.send('sync0');
 	}
     }
@@ -444,16 +451,30 @@ function loadingOnMessage(message) {
 	    t.magFilter = THREE.NearestFilter;
 	    textures[token] = t;
 	    numWalls++;
-	    if (numMapLines == numTotalMapLines && numWalls == numTotalWalls) {
+	    if (numMapLines == numTotalMapLines && numWalls == numTotalWalls && numObjects == numTotalObjects) {
 		createMap();
 	    }
 	}, null);
 	textures[token] = path;
     }
+    else if (message.startsWith("OP")) { // object path
+	var token = message.split(',')[1];
+	var path = message.split(',')[2];
+	loader.load("assets/models/" + path + ".obj",
+				"assets/models/" + path + ".mtl",
+				function(o) {
+				    objects[token] = o;
+				    numObjects++;
+				    console.log(numObjects + " " + numTotalObjects);
+				    if (numMapLines == numTotalMapLines && numWalls == numTotalWalls && numObjects == numTotalObjects) {
+					createMap();
+				    }
+				}, function() {}, function() {});
+    }
     else {
 	bufferedMap[bufferedMap.length] = message;
 	numMapLines++;
-	if (numMapLines == numTotalMapLines && numWalls == numTotalWalls) {
+	if (numMapLines == numTotalMapLines && numWalls == numTotalWalls && numObjects == numTotalObjects) {
 	    createMap();
 	}
     }
@@ -462,8 +483,8 @@ function createMap() {
     loadSpaceX = 0;
     loadSpaceY = 0;
     var floorGeom = new THREE.BoxGeometry(1,0,1);
-    var wallGeomHoriz = new THREE.BoxGeometry(0,1,1);
-    var wallGeomVert = new THREE.BoxGeometry(1,1,0);
+    var wallGeomHoriz = new THREE.BoxGeometry(0.001,1,1); // slight thickness for no ceiling clipping
+    var wallGeomVert = new THREE.BoxGeometry(1,1,0.001);
     for (var b = 0; b < bufferedMap.length; b++) {
 	var bMap = bufferedMap[b];
 	var oi = objectsToDraw.length;
@@ -471,34 +492,53 @@ function createMap() {
 	currentMap[currentMap.length] = spaces;
 	for (var x = 0; x < spaces.length; x++) {
 	    var items_at_space = spaces[x];
-	    for (var i = 0; i < items_at_space.length; i+= 2) {
+	    var amnt = 2;
+	    for (var i = 0; i < items_at_space.length; i+= amnt) {
+		amnt = 2;
 		var item = items_at_space.charAt(i);
-		var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		if (item == 'f') {
+		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(floorGeom, mat);
 		    objectsToDraw[oi].position.set(loadSpaceX, -.5, loadSpaceY);
 		}
 		else if (item == 'c') {
+		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(floorGeom, mat);
-		    objectsToDraw[oi].position.set(loadSpaceX, .501, loadSpaceY);
+		    objectsToDraw[oi].position.set(loadSpaceX, .5, loadSpaceY);
 		}
 		else if (item == 'd') {
+		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(wallGeomHoriz, mat);
 		    objectsToDraw[oi].position.set(loadSpaceX + 0.5, 0, loadSpaceY);
 		}
 		else if (item == 'a') {
+		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(wallGeomHoriz, mat);
 		    objectsToDraw[oi].position.set(loadSpaceX - 0.5, 0, loadSpaceY);
 		}
 		else if (item == 's') {
+		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(wallGeomVert, mat);
 		    objectsToDraw[oi].position.set(loadSpaceX, 0, loadSpaceY + 0.5);
 		}
 		else if (item == 'w') {
+		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(wallGeomVert, mat);
 		    objectsToDraw[oi].position.set(loadSpaceX, 0, loadSpaceY - 0.5);
 		}
-		if ('wasdfc'.indexOf(item) != -1) {
+		else if (item == 'o') {
+		    console.log(items_at_space.charAt(i+1));
+		    var objmtl = objects[items_at_space.charAt(i+1)].clone();
+		    var solid = parseInt(items_at_space.charAt(i+2));
+		    console.log(items_at_space.charAt(i+2) + ", " + solid);
+		    objectsToDraw[oi] = objmtl;
+		    objectsToDraw[oi].position.set(loadSpaceX, 0, loadSpaceY);
+		    amnt = 3;
+		    if (solid == 1) {
+			solidSpaces.push([loadSpaceX, loadSpaceY]);
+		    }
+		}
+		if ('wasdfco'.indexOf(item) != -1) {
 		    scene.add(objectsToDraw[oi++]);
 		}
 	    }
@@ -777,7 +817,8 @@ function flashInner(color, colorDuration, x, total, completion) {
 		    }
 		}
 	    );
-	});
+	}
+    );
 }
 
 function render() {
@@ -803,44 +844,64 @@ function checkNewPosition() {
     return false;
 }
 
+function containsArray(l, k) {
+    if (l.length == 0) return false;
+    for (var x = 0; x < l.length; x++) {
+	if (l[x].length != k.length) continue;
+	var b = true;
+	for (var y = 0; y < l[x].length; y++) 
+	    if (l[x][y] != k[y]) { b = false; break; }
+	if (b) return true;
+    }
+    return false;
+}
+
 function legalMove(direc,forward) {
     var currentSpaceItems = currentMap[xPos][yPos];
     if (direc == 0) {
 	if (forward) {
+	    if (containsArray(solidSpaces, [xPos, yPos-1])) return false;
 	    var nextSpaceItems = currentMap[xPos][yPos-1];
 	    return (currentSpaceItems.indexOf("w") == -1 && nextSpaceItems.indexOf("s") == -1 && nextSpaceItems.indexOf("f") != -1);
 	}
 	else {
+	    if (containsArray(solidSpaces, [xPos, yPos+1])) return false;
 	    var lastSpaceItems = currentMap[xPos][yPos+1];
 	    return (currentSpaceItems.indexOf("s") == -1 && lastSpaceItems.indexOf("w") == -1 && lastSpaceItems.indexOf("f") != -1);
 	}
     }
     else if (direc == 1) {
 	if (forward) {
+	    if (containsArray(solidSpaces, [xPos+1, yPos])) return false;
 	    var nextSpaceItems = currentMap[xPos+1][yPos];
 	    return (currentSpaceItems.indexOf("d") == -1 && nextSpaceItems.indexOf("a") == -1 && nextSpaceItems.indexOf("f") != -1);
 	}
 	else {
+	    if (containsArray(solidSpaces, [xPos-1, yPos])) return false;
 	    var lastSpaceItems = currentMap[xPos-1][yPos];
 	    return (currentSpaceItems.indexOf("a") == -1 && lastSpaceItems.indexOf("d") == -1 && lastSpaceItems.indexOf("f") != -1);
 	}
     }
     else if (direc == 2) {
 	if (forward) {
+	    if (containsArray(solidSpaces, [xPos, yPos+1])) return false;
 	    var nextSpaceItems = currentMap[xPos][yPos+1];
 	    return (currentSpaceItems.indexOf("s") == -1 && nextSpaceItems.indexOf("w") == -1 && nextSpaceItems.indexOf("f") != -1);
 	}
 	else {
+	    if (containsArray(solidSpaces, [xPos, yPos-1])) return false;
 	    var lastSpaceItems = currentMap[xPos][yPos-1];
 	    return (currentSpaceItems.indexOf("w") == -1 && lastSpaceItems.indexOf("s") == -1 && lastSpaceItems.indexOf("f") != -1);
 	}
     }
     else if (direc == 3) {
 	if (forward) {
+	    if (containsArray(solidSpaces, [xPos-1, yPos])) return false;
 	    var nextSpaceItems = currentMap[xPos-1][yPos];
 	    return (currentSpaceItems.indexOf("a") == -1 && nextSpaceItems.indexOf("d") == -1 && nextSpaceItems.indexOf("f") != -1);
 	}
 	else {
+	    if (containsArray(solidSpaces, [xPos+1, yPos])) return false;
 	    var lastSpaceItems = currentMap[xPos+1][yPos];
 	    return (currentSpaceItems.indexOf("d") == -1 && lastSpaceItems.indexOf("a") == -1 && lastSpaceItems.indexOf("f") != -1);
 	}
@@ -952,7 +1013,6 @@ function encounterHandleInput() {
 
 // position "Animation" updating
 function update() {
-    //    shadMat.uniforms.cPos = camera.position;
     if (turning == 1) {
 	camera.rotation.y += .075;
 	if (camera.rotation.y > rotateTo) {
