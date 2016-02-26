@@ -24,6 +24,8 @@ var mapText = "";
 var token = "";
 var placingWalls = false;
 
+var selectedEnemies = [];
+
 function load() {
     hideControls();
     $('#wallType').hide();
@@ -53,6 +55,21 @@ function load() {
 		placedObjectInfo[cursorX+','+cursorY].solid = !placedObjectInfo[cursorX+','+cursorY].solid;
 	    };
 	    $('#wallType').show();
+	    $('#loading').text("Loading enemies, please wait even moar");
+		$.ajax({url: "enemies.py", method:"POST", success: function(r3) {
+		    document.getElementById("enemyPick").innerHTML = r3;
+		    document.getElementById("enemyPick").onchange = function() {
+			if (selectedEnemies.indexOf(
+			    document.getElementById("enemyPick").options[
+			    document.getElementById("enemyPick").selectedIndex].innerHTML) == -1) {
+			    $('#enemyAction').text('Add');
+			}
+			else {
+			    $('#enemyAction').text('Remove');
+			}
+		    };
+		    $('#loading').text();
+		}});
 	}});
     }});
 }
@@ -141,7 +158,13 @@ function updateMap() {
 	return;
     }
 
+    for (var x = 0; x < selectedEnemies.length; x++) {
+	mapText += selectedEnemies[x] + ",";
+    }
+    mapText = mapText.substring(mapText.length - 1) + "\n";
+
     var walls = document.getElementById("wallType").options;
+
     mapText = "WN," + (walls.length-1) + "\n";
     mapText += "MN," + placements.length + "\n";
     mapText += "ON," + Object.keys(placedObjectInfo).length + "\n";
@@ -344,6 +367,23 @@ window.onkeydown = function(k) {
 	}
     }
 
+}
+
+function modEnemy() {
+    var selectedEnemy = document.getElementById("enemyPick").options[
+	document.getElementById("enemyPick").selectedIndex].innerHTML;
+    if (selectedEnemies.indexOf(selectedEnemy) == -1) {
+	selectedEnemies.push(selectedEnemy);
+	$('#enemyArea').text($('#enemyArea').text() + "\n" + selectedEnemy);
+	$('#enemyAction').text('Remove');
+    }
+    else {
+	var index = selectedEnemies.indexOf(selectedEnemy);
+	selectedEnemies.splice(index, 1);
+	$('#enemyArea').text($('#enemyArea').text().replace("\n" + selectedEnemy, ""));
+	$('#enemyAction').text('Add');
+    }
+    $('#enemyArea').text($('#enemyArea').text().trim());
 }
 
 function drawWalls() {

@@ -10,20 +10,25 @@
     <script src="js/class.js"></script>
     <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
     <script src="js/jquery.color-2.1.2.min.js"></script>
-    <script type="x-shader/x-vertex" id="vertshader">
-      varying vec3 vPos;
+
+
+    <script type="x-shader/x-vertex" id="dvert">
+      varying vec2 vUv;
       void main() {
-      vPos = normalize(modelMatrix * vec4(normal, 1.0)).xyz;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
       }
     </script>
-    <script type="x-shader/x-fragment" id="fragshader">
-      varying vec3 vPos;
+
+
+    <script type="x-shader/x-fragment" id="dfrag">
+      varying vec2 vUv;
       void main() {
-      float dProd = max(0.0, distance(vPos, normalize(cameraPosition)));
-      gl_FragColor = vec4(1.0 - dProd, 1.0 - dProd, 1.0 - dProd,1.0);
+      gl_FragColor = vUv;
       }
     </script>
+
+
 
   </head>
 

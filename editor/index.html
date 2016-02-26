@@ -24,11 +24,20 @@
     <a id="savegame" download="gen.map">Save Map</a>
     <div id="loading"><b>Loading wall materials, wait pls</b></div>
     <select id="wallType"></select>
-    <div id="objectWindow" style="position: absolute; right:5%; top:5%; background-color: lightgrey; border: 1px solid; padding: 3px 3px 3px 3px;">
+
+
+    <div id="objectWindow" style="position: absolute; right:2%; top:5%; background-color: lightgrey; border: 1px solid; padding: 3px;">
       <label for="objSolid">Object is solid</label>
       <input type="checkbox" id="objSolid" /> <br/>
       <select id="objType"></select>
     </div>
+
+    <div id="enemyWindow" style="position: absolute; right: 2%; top: 140%; background-color: lightgrey; border: 1px solid; padding: 3px;">
+      <textarea disabled id="enemyArea"></textarea></br>
+      <select id="enemyPick"></select>
+      <button id="enemyAction" onclick="modEnemy();">Add</button>
+    </div>
+
 
     <pre id="grid"></pre>
 

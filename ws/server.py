@@ -11,7 +11,6 @@ rooms = {}
 
 # globals/finals
 maps = {1:['house.map'],2:['test3.map'],3:['test1.map','test2.map']}
-enemies = {1:['peppermonster.png','evilpenguin.png']}
 ENC_MIN = 5
 ENC_MAX = 10
 PLAYER_MAX_HP = 150
@@ -39,6 +38,7 @@ class Room:
         self.monsters = True
         
         # encounter-relevant variables
+        self.enemies = []
         self.enc_rate = 0
         self.in_encounter = False
         self.enemy_hp = None
@@ -87,9 +87,10 @@ class Room:
         mapfile = open('maps/' + random.choice(maps[min(len(maps),self.map_number)]),'r')
         self.map = mapfile.readlines()
         mapfile.close()
-        self.send_to_all(self.map[0])
+        self.enemies = self.map[0].split(',')
         self.send_to_all(self.map[1])
         self.send_to_all(self.map[2])
+        self.send_to_all(self.map[3])
         self.do_sync(0,self.do_start_map)
 
     def do_start_map(self):
@@ -114,7 +115,7 @@ class Room:
 
     def do_encounter(self):
         difficulty = self.map_number + (1.2 * len(self.uids))
-        enemy_sprite = random.choice(enemies[min(self.map_number,len(enemies))])
+        enemy_sprite = random.choice(self.enemies)
         self.enemy_hp = math.floor(difficulty * 30) * len(self.uids)
         self.send_to_all('esp:' + enemy_sprite)
         self.send_to_all('ewpm:10') # doesn't matter right now

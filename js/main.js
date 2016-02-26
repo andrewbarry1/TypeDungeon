@@ -85,11 +85,16 @@ var bufferedMap = [];
 var buttonGeometry = new THREE.BoxGeometry(10,5,0);
 var hugeButtonGeometry = new THREE.BoxGeometry(50,50,0);
 var colors = ['green','red','cyan','yellow'];
-var shadMat = new THREE.ShaderMaterial({
-    uniforms: { cPos: { type: 'v3', value: camera.position}},
-    vertexShader: $('#vertshader').text(),
-    fragmentShader: $('#fragshader').text()
-});
+/*
+var dither0 = [0,32,8,40,2,34,10,42];
+var dither1 = [48,16,56,24,50,18,58,26];
+var dither2 = [12,44,4,36,14,46,6,38];
+var dither3 = [60,28,52,20,62,30,54,22];
+var dither4 = [3,35,11,43,1,33,9,41];
+var dither5 = [51,19,59,27,49,17,57,25];
+var dither6 = [15,47,7,39,13,45,5,37];
+var dither7 = [63,31,55,23,61,29,53,21];
+*/
 
 // store some info on each player
 var Player = Class.extend({
@@ -131,7 +136,7 @@ var Queue = Class.extend({
 function loadGame() {
     sock.onmessage = onMessage;
     renderer.setSize(500,500);
-    renderer.setSize(250,250,false);
+//    renderer.setSize(250,250,false);
     renderer.autoClear = false;
     hudCamera.position.z = 10;
     renderer.domElement.className += " mainDisplay";
@@ -497,31 +502,65 @@ function createMap() {
 		amnt = 2;
 		var item = items_at_space.charAt(i);
 		if (item == 'f') {
+		    
+//		    var mat = new THREE.ShaderMaterial({
+//			uniforms: { atexture: { type: "t", value: textures[items_at_space.charAt(i+1)] } },
+//			vertexShader: $('#dvert').text(),
+//			fragmentShader: $('#dfrag').text()});
+
+		    
+
+
 		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(floorGeom, mat);
 		    objectsToDraw[oi].position.set(loadSpaceX, -.5, loadSpaceY);
 		}
 		else if (item == 'c') {
+//		    var mat = new THREE.ShaderMaterial({
+//			uniforms: { atexture: { type: "t", value: textures[items_at_space.charAt(i+1)] } },
+//			vertexShader: $('#dvert').text(),
+//			fragmentShader: $('#dfrag').text()});
+
 		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(floorGeom, mat);
 		    objectsToDraw[oi].position.set(loadSpaceX, .5, loadSpaceY);
 		}
 		else if (item == 'd') {
+//		    var mat = new THREE.ShaderMaterial({
+//			uniforms: { atexture: { type: "t", value: textures[items_at_space.charAt(i+1)] } },
+//			vertexShader: $('#dvert').text(),
+//			fragmentShader: $('#dfrag').text()});
+
 		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(wallGeomHoriz, mat);
 		    objectsToDraw[oi].position.set(loadSpaceX + 0.5, 0, loadSpaceY);
 		}
 		else if (item == 'a') {
+//		    var mat = new THREE.ShaderMaterial({
+//			uniforms: { atexture: { type: "t", value: textures[items_at_space.charAt(i+1)] } },
+//			vertexShader: $('#dvert').text(),
+//			fragmentShader: $('#dfrag').text()});
+
 		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(wallGeomHoriz, mat);
 		    objectsToDraw[oi].position.set(loadSpaceX - 0.5, 0, loadSpaceY);
 		}
 		else if (item == 's') {
+//		    var mat = new THREE.ShaderMaterial({
+//			uniforms: { atexture: { type: "t", value: textures[items_at_space.charAt(i+1)] } },
+//			vertexShader: $('#dvert').text(),
+//			fragmentShader: $('#dfrag').text()});
+
 		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(wallGeomVert, mat);
 		    objectsToDraw[oi].position.set(loadSpaceX, 0, loadSpaceY + 0.5);
 		}
 		else if (item == 'w') {
+//		    var mat = new THREE.ShaderMaterial({
+//			uniforms: { atexture: { type: "t", value: textures[items_at_space.charAt(i+1)] } },
+//			vertexShader: $('#dvert').text(),
+//			fragmentShader: $('#dfrag').text()});
+
 		    var mat = new THREE.MeshBasicMaterial({map:textures[items_at_space.charAt(i+1)]});
 		    objectsToDraw[oi] = new THREE.Mesh(wallGeomVert, mat);
 		    objectsToDraw[oi].position.set(loadSpaceX, 0, loadSpaceY - 0.5);
@@ -626,7 +665,7 @@ function playingOnMessage(message) {
     }
 
     else if (message.startsWith('esp')) {
-	THREE.ImageUtils.loadTexture('assets/' + message.split(':')[1], undefined, function(esp) {
+	THREE.ImageUtils.loadTexture('assets/' + message.split(':')[1] + "-enemy.png", undefined, function(esp) {
 	    enemySprite = esp;
 	    typeLineCursor = 0;
 	    flashColor("yellow", 100, 3, startEncounter);
